@@ -1,6 +1,7 @@
 /* Initialization code run first thing by the ELF startup code.  For i386/Hurd.
-   Copyright (C) 1995,96,97,98,99,2000,01,02,03,04,05
-	Free Software Foundation, Inc.
+   Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
+	2005, 2007 Free Software Foundation, Inc.
+
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -243,8 +244,8 @@ init (int *data)
 	 be the return address for `init1'; we will jump there with NEWSP
 	 as the stack pointer.  */
       *--newsp = data[-1];
-      ((void **) data)[-1] = switch_stacks;
-      /* Force NEWSP into %ecx and &init1 into %eax, which are not restored
+      data[-1] = (int) &switch_stacks;
+      /* Force NEWSP into %eax and &init1 into %ecx, which are not restored
 	 by function return.  */
       asm volatile ("# a %0 c %1" : : "a" (newsp), "c" (&init1));
     }
