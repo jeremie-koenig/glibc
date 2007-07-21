@@ -320,11 +320,11 @@ first_init (void)
    stack set up just as the user will see it, so it can switch stacks.  */
 
 void
-_dl_init_first (void)
+_dl_init_first (int argc, ...)
 {
   first_init ();
 
-  init ((int *) __builtin_frame_address (0) + 2);
+  init (&argc);
 }
 #endif
 
@@ -351,23 +351,21 @@ strong_alias (posixland_init, __libc_init_first);
    This poorly-named function is called by static-start.S,
    which should not exist at all.  */
 void
-_hurd_stack_setup (void)
+_hurd_stack_setup (volatile int argc, ...)
 {
-  intptr_t caller = (intptr_t) __builtin_return_address (0);
-
   void doinit (intptr_t *data)
     {
       /* This function gets called with the argument data at TOS.  */
-      void doinit1 (void)
+      void doinit1 (volatile int argc, ...)
 	{
-	  init ((int *) __builtin_frame_address (0) + 2);
+	  init ((int *) &argc);
 	}
 
       /* Push the user return address after the argument data, and then
          jump to `doinit1' (above), so it is as if __libc_init_first's
          caller had called `doinit1' with the argument data already on the
          stack.  */
-      *--data = caller;
+      *--data = (&argc)[-1];
       asm volatile ("movl %0, %%esp\n" /* Switch to new outermost stack.  */
 		    "movl $0, %%ebp\n" /* Clear outermost frame pointer.  */
 		    "jmp *%1" : : "r" (data), "r" (&doinit1) : "sp");
@@ -376,7 +374,7 @@ _hurd_stack_setup (void)
 
   first_init ();
 
-  _hurd_startup ((void **) __builtin_frame_address (0) + 2, &doinit);
+  _hurd_startup ((void **) &argc, &doinit);
 }
 #endif
 
