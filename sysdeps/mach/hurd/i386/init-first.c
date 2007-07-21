@@ -351,8 +351,10 @@ strong_alias (posixland_init, __libc_init_first);
    This poorly-named function is called by static-start.S,
    which should not exist at all.  */
 void
-_hurd_stack_setup (volatile int argc, ...)
+_hurd_stack_setup (void *arg, ...)
 {
+  void *caller = (&arg)[-1];
+
   void doinit (intptr_t *data)
     {
       /* This function gets called with the argument data at TOS.  */
@@ -365,7 +367,7 @@ _hurd_stack_setup (volatile int argc, ...)
          jump to `doinit1' (above), so it is as if __libc_init_first's
          caller had called `doinit1' with the argument data already on the
          stack.  */
-      *--data = (&argc)[-1];
+      *--data = (intptr_t) caller;
       asm volatile ("movl %0, %%esp\n" /* Switch to new outermost stack.  */
 		    "movl $0, %%ebp\n" /* Clear outermost frame pointer.  */
 		    "jmp *%1" : : "r" (data), "r" (&doinit1) : "sp");
@@ -374,7 +376,7 @@ _hurd_stack_setup (volatile int argc, ...)
 
   first_init ();
 
-  _hurd_startup ((void **) &argc, &doinit);
+  _hurd_startup (&arg, &doinit);
 }
 #endif
 
