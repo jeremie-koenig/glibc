@@ -185,6 +185,10 @@ struct __libc_once
     __libc_lock_unlock (ONCE_CONTROL.lock);				      \
   } while (0)
 
+/* Get once control variable.  */
+#define __libc_once_get(ONCE_CONTROL) \
+  (!ONCE_CONTROL.done)
+
 #ifdef _LIBC
 /* We need portable names for some functions.  E.g., when they are
    used as argument to __libc_cleanup_region_start.  */

@@ -98,6 +98,9 @@
     }									      \
   } while (0)
 
+/* Get once control variable.  */
+#define __libc_once_get(ONCE_CONTROL) \
+  ((ONCE_CONTROL) == 1)
 
 /* Start a critical region with a cleanup function */
 #define __libc_cleanup_region_start(DOIT, FCT, ARG)			    \
