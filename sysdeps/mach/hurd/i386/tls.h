@@ -96,7 +96,7 @@ _hurd_tls_init (tcbhead_t *tcb, int secondcall)
       /* Fetch the selector set by the first call.  */
       int sel;
       asm ("mov %%gs, %w0" : "=q" (sel) : "0" (0));
-      if (__builtin_expect (sel, 0x50) & 4) /* LDT selector */
+      if (__builtin_expect (sel, 0x48) & 4) /* LDT selector */
 	{
 	  error_t err = __i386_set_ldt (tcb->self, sel, &desc, 1);
 	  assert_perror (err);
@@ -142,9 +142,9 @@ _hurd_tls_init (tcbhead_t *tcb, int secondcall)
 
 #include <mach/machine/thread_status.h>
 
-/* Set up TLS in the new thread of a fork child, copying from our own.  */
+/* Set up TLS in the new thread of a fork child, copying from the original.  */
 static inline error_t __attribute__ ((unused))
-_hurd_tls_fork (thread_t child, struct i386_thread_state *state)
+_hurd_tls_fork (thread_t child, thread_t orig, struct i386_thread_state *state)
 {
   /* Fetch the selector set by _hurd_tls_init.  */
   int sel;
@@ -152,11 +152,44 @@ _hurd_tls_fork (thread_t child, struct i386_thread_state *state)
   if (sel == state->ds)		/* _hurd_tls_init was never called.  */
     return 0;
 
-  tcbhead_t *const tcb = THREAD_SELF;
+  struct descriptor desc, *_desc = &desc;
+  error_t err;
+  unsigned int count;
+
+  if (__builtin_expect (sel, 0x48) & 4) /* LDT selector */
+    err = __i386_get_ldt (orig, sel, 1, &_desc, &count);
+  else
+    err = __i386_get_gdt (orig, sel, &desc);
+
+  assert_perror (err);
+  if (err)
+    return err;
+
+  if (__builtin_expect (sel, 0x48) & 4) /* LDT selector */
+    err = __i386_set_ldt (child, sel, &desc, 1);
+  else
+    err = __i386_set_gdt (child, &sel, desc);
+
+  state->gs = sel;
+  return err;
+}
+
+static inline error_t __attribute__ ((unused))
+_hurd_tls_new (thread_t child, struct i386_thread_state *state, tcbhead_t *tcb)
+{
+  /* Fetch the selector set by _hurd_tls_init.  */
+  int sel;
+  asm ("mov %%gs, %w0" : "=q" (sel) : "0" (0));
+  if (sel == state->ds)		/* _hurd_tls_init was never called.  */
+    return 0;
+
   HURD_TLS_DESC_DECL (desc, tcb);
   error_t err;
 
-  if (__builtin_expect (sel, 0x50) & 4) /* LDT selector */
+  tcb->tcb = tcb;
+  tcb->self = child;
+
+  if (__builtin_expect (sel, 0x48) & 4) /* LDT selector */
     err = __i386_set_ldt (child, sel, &desc, 1);
   else
     err = __i386_set_gdt (child, &sel, desc);

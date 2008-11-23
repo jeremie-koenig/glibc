@@ -21,6 +21,9 @@
 #define _BITS_LIBC_LOCK_H 1
 
 #if (_LIBC - 0) || (_CTHREADS_ - 0)
+#if (_LIBC - 0)
+#include <tls.h>
+#endif
 #include <cthreads.h>
 #include <hurd/threadvar.h>
 

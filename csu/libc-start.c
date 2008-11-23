@@ -134,10 +134,12 @@ LIBC_START_MAIN (int (*main) (int, char **, char ** MAIN_AUXVEC_DECL),
     }
 # endif
 
+#ifndef __GNU__
   /* Initialize the thread library at least a bit since the libgcc
      functions are using thread functions if these are available and
      we need to setup errno.  */
   __pthread_initialize_minimal ();
+#endif
 
   /* Set up the stack checker's canary.  */
   uintptr_t stack_chk_guard = _dl_setup_stack_chk_guard ();

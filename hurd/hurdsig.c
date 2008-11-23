@@ -1267,6 +1267,8 @@ _hurdsig_init (const int *intarray, size_t intarraysize)
 				 (vm_address_t *) &__hurd_sigthread_stack_base,
 				 &stacksize);
       assert_perror (err);
+      err = __mach_setup_tls (_hurd_msgport_thread);
+      assert_perror (err);
 
       __hurd_sigthread_stack_end = __hurd_sigthread_stack_base + stacksize;
       __hurd_sigthread_variables =
@@ -1275,8 +1277,6 @@ _hurdsig_init (const int *intarray, size_t intarraysize)
 	__libc_fatal ("hurd: Can't allocate threadvars for signal thread\n");
       memset (__hurd_sigthread_variables, 0,
 	      __hurd_threadvar_max * sizeof (unsigned long int));
-      __hurd_sigthread_variables[_HURD_THREADVAR_LOCALE]
-	= (unsigned long int) &_nl_global_locale;
 
       /* Reinitialize the MiG support routines so they will use a per-thread
 	 variable for the cached reply port.  */

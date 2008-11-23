@@ -23,6 +23,7 @@
 #if defined HAVE_TLS_SUPPORT && !defined __ASSEMBLER__
 
 # include <stddef.h>
+# include <stdint.h>
 # include <stdbool.h>
 # include <mach/mig_errors.h>
 # include <mach.h>
