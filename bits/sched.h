@@ -69,6 +69,9 @@ typedef struct
 # define __CPU_ISSET(cpu, cpusetp) \
   (((cpusetp)->__bits[__CPUELT (cpu)] & __CPUMASK (cpu)) != 0)
 
+# define __CPU_ALLOC_SIZE(count) \
+  ((((count) + __NCPUBITS - 1) / __NCPUBITS) * 8)
+
 __BEGIN_DECLS
 
 extern int __sched_cpucount (size_t __setsize, const cpu_set_t *__setp)
