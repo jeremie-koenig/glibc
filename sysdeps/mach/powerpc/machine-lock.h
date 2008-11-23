@@ -35,6 +35,9 @@ typedef __volatile long int __spin_lock_t;
 
 /* Unlock LOCK.  */
 
+void __spin_unlock (__spin_lock_t *__lock);
+
+#ifdef __USE_EXTERN_INLINES
 _EXTERN_INLINE void
 __spin_unlock (__spin_lock_t *__lock)
 {
@@ -45,9 +48,13 @@ __spin_unlock (__spin_lock_t *__lock)
 	bne-	0b\n\
 " : "=&r" (__locked) : "r" (__lock), "r" (0) : "cr0");
 }
+#endif
 
 /* Try to lock LOCK; return nonzero if we locked it, zero if another has.  */
 
+int __spin_try_lock (register __spin_lock_t *__lock);
+
+#ifdef __USE_EXTERN_INLINES
 _EXTERN_INLINE int
 __spin_try_lock (register __spin_lock_t *__lock)
 {
@@ -59,9 +66,13 @@ __spin_try_lock (register __spin_lock_t *__lock)
 " : "=&r" (__rtn) : "r" (__lock), "r" (1) : "cr0");
   return !__rtn;
 }
+#endif
 
 /* Return nonzero if LOCK is locked.  */
 
+int __spin_lock_locked (__spin_lock_t *__lock);
+
+#ifdef __USE_EXTERN_INLINES
 _EXTERN_INLINE int
 __spin_lock_locked (__spin_lock_t *__lock)
 {
@@ -73,6 +84,7 @@ __spin_lock_locked (__spin_lock_t *__lock)
 " : "=&r" (__rtn) : "r" (__lock) : "cr0");
   return __rtn;
 }
+#endif
 
 
 #endif /* machine-lock.h */

@@ -35,14 +35,21 @@ typedef volatile int __spin_lock_t;
 
 /* Unlock LOCK.  */
 
+void __spin_unlock (__spin_lock_t *__lock);
+
+#ifdef __USE_EXTERN_INLINES
 _EXTERN_INLINE void
 __spin_unlock (__spin_lock_t *__lock)
 {
   *__lock = 0;
 }
+#endif
 
 /* Try to lock LOCK; return nonzero if we locked it, zero if another has.  */
 
+int __spin_try_lock (__spin_lock_t *__lock);
+
+#ifdef __USE_EXTERN_INLINES
 _EXTERN_INLINE int
 __spin_try_lock (__spin_lock_t *__lock)
 {
@@ -51,14 +58,19 @@ __spin_try_lock (__spin_lock_t *__lock)
   *__lock = 1;
   return 1;
 }
+#endif
 
 /* Return nonzero if LOCK is locked.  */
 
+int __spin_lock_locked (__spin_lock_t *__lock);
+
+#ifdef __USE_EXTERN_INLINES
 _EXTERN_INLINE int
 __spin_lock_locked (__spin_lock_t *__lock)
 {
   return *__lock != 0;
 }
+#endif
 
 
 #endif /* machine-lock.h */

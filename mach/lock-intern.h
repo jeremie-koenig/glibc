@@ -29,11 +29,15 @@
 
 /* Initialize LOCK.  */
 
+void __spin_lock_init (__spin_lock_t *__lock);
+
+#ifdef __USE_EXTERN_INLINES
 _EXTERN_INLINE void
 __spin_lock_init (__spin_lock_t *__lock)
 {
   *__lock = __SPIN_LOCK_INITIALIZER;
 }
+#endif
 
 
 /* Lock LOCK, blocking if we can't get it.  */
@@ -41,12 +45,16 @@ extern void __spin_lock_solid (__spin_lock_t *__lock);
 
 /* Lock the spin lock LOCK.  */
 
+void __spin_lock (__spin_lock_t *__lock);
+
+#ifdef __USE_EXTERN_INLINES
 _EXTERN_INLINE void
 __spin_lock (__spin_lock_t *__lock)
 {
   if (! __spin_try_lock (__lock))
     __spin_lock_solid (__lock);
 }
+#endif
 
 /* Name space-clean internal interface to mutex locks.
 
@@ -71,27 +79,39 @@ extern void __mutex_unlock_solid (void *__lock);
 
 /* Lock the mutex lock LOCK.  */
 
+void __mutex_lock (void *__lock);
+
+#ifdef __USE_EXTERN_INLINES
 _EXTERN_INLINE void
 __mutex_lock (void *__lock)
 {
   if (! __spin_try_lock ((__spin_lock_t *) __lock))
     __mutex_lock_solid (__lock);
 }
+#endif
 
 /* Unlock the mutex lock LOCK.  */
 
+void __mutex_unlock (void *__lock);
+
+#ifdef __USE_EXTERN_INLINES
 _EXTERN_INLINE void
 __mutex_unlock (void *__lock)
 {
   __spin_unlock ((__spin_lock_t *) __lock);
   __mutex_unlock_solid (__lock);
 }
+#endif
 
 
+int __mutex_trylock (void *__lock);
+
+#ifdef __USE_EXTERN_INLINES
 _EXTERN_INLINE int
 __mutex_trylock (void *__lock)
 {
   return __spin_try_lock ((__spin_lock_t *) __lock);
 }
+#endif
 
 #endif /* lock-intern.h */
