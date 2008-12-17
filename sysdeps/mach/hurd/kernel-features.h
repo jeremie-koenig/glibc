@@ -34,3 +34,4 @@
 
 #define __ASSUME_SOCK_CLOEXEC	1
 #define __ASSUME_PIPE2		1
+#define __ASSUME_ACCEPT4	1
