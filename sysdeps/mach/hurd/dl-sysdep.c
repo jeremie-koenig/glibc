@@ -1,6 +1,8 @@
 /* Operating system support for run-time dynamic linker.  Hurd version.
-   Copyright (C) 1995,1996,1997,1998,1999,2000,2001,2002,2003,2004
-	Free Software Foundation, Inc.
+
+   Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
+   2008 Free Software Foundation, Inc.
+
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -17,6 +19,12 @@
    License along with the GNU C Library; if not, write to the Free
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
+
+/* Is this the right solution?  */
+#ifdef SHARED
+// Or rather this one? #if IS_IN_rtld /* Only to be used in the rtld case.  */
+// Or move that file to rtld-*?
+// Or some other Makefile magic?
 
 #include <hurd.h>
 #include <link.h>
@@ -668,3 +676,5 @@ _dl_init_first (int argc, ...)
 {
   /* This no-op definition only gets used if libc is not linked in.  */
 }
+
+#endif /* SHARED */
