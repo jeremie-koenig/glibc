@@ -478,24 +478,21 @@ typedef uintmax_t uatomic_max_t;
     if (sizeof (*mem) == 1)						      \
       __asm __volatile (lock "andb %b1, %0"				      \
 			: "=m" (*mem)					      \
-			: "iq" (mask), "m" (*mem),			      \
-			  "i" (offsetof (tcbhead_t, multiple_threads)));      \
+			: "iq" (mask), "m" (*mem));			      \
     else if (sizeof (*mem) == 2)					      \
       __asm __volatile (lock "andw %w1, %0"				      \
 			: "=m" (*mem)					      \
-			: "ir" (mask), "m" (*mem),			      \
-			  "i" (offsetof (tcbhead_t, multiple_threads)));      \
+			: "ir" (mask), "m" (*mem));			      \
     else if (sizeof (*mem) == 4)					      \
       __asm __volatile (lock "andl %1, %0"				      \
 			: "=m" (*mem)					      \
-			: "ir" (mask), "m" (*mem),			      \
-			  "i" (offsetof (tcbhead_t, multiple_threads)));      \
+			: "ir" (mask), "m" (*mem));			      \
     else								      \
       abort ();								      \
   } while (0)
 
 #define __arch_cprefix \
-  "cmpl $0, %%gs:%P3\n\tje 0f\n\tlock\n0:\t"
+  "lock\n\t"
 
 #define atomic_and(mem, mask) __arch_and_body (LOCK_PREFIX, mem, mask)
 
@@ -522,11 +519,4 @@ typedef uintmax_t uatomic_max_t;
 
 #define atomic_or(mem, mask) __arch_or_body (LOCK_PREFIX, mem, mask)
 
-<<<<<<< HEAD:sysdeps/i386/i486/bits/atomic.h
-#define __arch_or_cprefix \
-  "lock\n\t"
-
-#define catomic_or(mem, mask) __arch_or_body (__arch_or_cprefix, mem, mask)
-=======
 #define catomic_or(mem, mask) __arch_or_body (__arch_cprefix, mem, mask)
->>>>>>> 6c03cd11e9c253211c831a70dfece6f5bd07e12c:sysdeps/i386/i486/bits/atomic.h
