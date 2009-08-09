@@ -92,6 +92,9 @@ typedef struct __libc_lock_recursive_opaque__ __libc_lock_recursive_t;
 #define __rtld_lock_define_initialized_recursive(CLASS,NAME) \
   __libc_lock_define_initialized_recursive (CLASS, NAME)
 
+#define __rtld_lock_initialize(NAME) \
+  (void) ((NAME) = (__rtld_lock_recursive_t) _RTLD_LOCK_RECURSIVE_INITIALIZER)
+
 #define __libc_lock_init_recursive(NAME) \
   ({ __libc_lock_recursive_t *const __lock = &(NAME); \
      __lock->owner = 0; mutex_init (&__lock->mutex); })
