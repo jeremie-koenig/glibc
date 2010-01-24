@@ -1,3 +1,7 @@
 From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] __rtld_lock_recursive_t
 
+2009-08-05  Thomas Schwinge  <tschwinge@gnu.org>
+
+	* sysdeps/mach/hurd/bits/libc-lock.h (__rtld_lock_recursive_t): New
+	typedef.
