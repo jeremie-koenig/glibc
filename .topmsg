@@ -1,6 +1,4 @@
 From: Thomas Schwinge <thomas@schwinge.name>
-Subject: [PATCH] fcntl-internal.h
+Subject: [PATCH] socket_flags
 
-2008-12-18  Thomas Schwinge  <tschwinge@gnu.org>
-
-	* hurd/fcntl-internal.h: New file.
+SOCK_CLOEXEC and SOCK_NONBLOCK for socket on GNU Hurd.
