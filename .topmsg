@@ -1,4 +1,6 @@
 From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] fcntl-internal.h
 
-fcntl-internal.h
+2008-12-18  Thomas Schwinge  <tschwinge@gnu.org>
+
+	* hurd/fcntl-internal.h: New file.
