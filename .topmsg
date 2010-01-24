@@ -1,6 +1,8 @@
 From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] check_native
 
-Implement check_native.
+2008-11-23  Thomas Schwinge  <tschwinge@gnu.org>
 
-Bogus for now.
+	* sysdeps/mach/hurd/check_native.c: New file.
+
+For now only a dummy.
