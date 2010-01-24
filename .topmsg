@@ -1,4 +1,9 @@
 From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] socket_flags
 
-SOCK_CLOEXEC and SOCK_NONBLOCK for socket on GNU Hurd.
+2008-12-17  Thomas Schwinge  <tschwinge@gnu.org>
+
+	SOCK_CLOEXEC and SOCK_NONBLOCK for socket on GNU Hurd.
+	* sysdeps/mach/hurd/socket.c (__socket): Handle SOCK_CLOEXEC and
+	SOCK_NONBLOCK.
+	* sysdeps/mach/hurd/kernel-features.h (__ASSUME_SOCK_CLOEXEC): Define.
