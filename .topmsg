@@ -1,4 +1,10 @@
 From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] dup3
 
-dup3 for GNU Hurd.
+2008-12-19  Thomas Schwinge  <tschwinge@gnu.org>
+
+	dup3 for GNU Hurd.
+	* include/unistd.h (__dup3): New hidden declaration.
+	* sysdeps/mach/hurd/dup3.c: New file, copy from dup2.c.  Evolve it to
+	implement dup3 and do some further code clean-ups.
+	* sysdeps/mach/hurd/dup2.c (__dup2): Reimplement using __dup3.
