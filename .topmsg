@@ -1,8 +1,4 @@
 From: Thomas Schwinge <thomas@schwinge.name>
-Subject: [PATCH] verify.h
+Subject: [PATCH] fcntl-internal.h
 
-2008-12-18  Thomas Schwinge  <tschwinge@gnu.org>
-
-	* include/verify.h: New file, from gnulib.
-
-TODO: Use it in all sensible places.
+fcntl-internal.h
