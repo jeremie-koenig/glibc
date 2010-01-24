@@ -1,4 +1,8 @@
 From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] bits_socket.h
 
-We need our own bits/socket.h.
+2008-12-17  Thomas Schwinge  <tschwinge@gnu.org>
+
+	* sysdeps/mach/hurd/bits/socket.h: New file, copy from the bsd4.4 one.
+	(SOCK_MAX, SOCK_TYPE_MASK, SOCK_CLOEXEC, SOCK_NONBLOCK): New
+	definitions.
