@@ -1,0 +1,6 @@
+From: Thomas Schwinge <thomas@schwinge.name>
+Subject: [PATCH] verify.h
+
+Add verify.h.
+
+TODO: Use it in all sensible places.
