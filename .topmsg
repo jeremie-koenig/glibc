@@ -1,8 +1,4 @@
 From: Thomas Schwinge <thomas@schwinge.name>
-Subject: [PATCH] socketpair_flags
+Subject: [PATCH] pipe2
 
-2008-12-17  Thomas Schwinge  <tschwinge@gnu.org>
-
-	SOCK_CLOEXEC and SOCK_NONBLOCK for socketpair on GNU Hurd.
-	* sysdeps/mach/hurd/socketpair.c (__socketpair): Handle SOCK_CLOEXEC
-	and SOCK_NONBLOCK.
+pipe2 for GNU Hurd.
