@@ -1,4 +1,10 @@
 From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] pipe2
 
-pipe2 for GNU Hurd.
+2008-12-17  Thomas Schwinge  <tschwinge@gnu.org>
+
+	pipe2 for GNU Hurd.
+	* sysdeps/mach/hurd/pipe2.c: New file, copy from pipe.c.  Evolve it to
+	implement __pipe2.
+	* sysdeps/mach/hurd/pipe.c (__pipe): Reimplement using __pipe2.
+	* sysdeps/mach/hurd/kernel-features.h (__ASSUME_PIPE2): Define.
