@@ -2,3 +2,5 @@ From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] ptrmangle
 
 Pointer mangling.
+
+glibc-2.8/debian/patches/hurd-i386/submitted-ptr-mangle.diff 3057
