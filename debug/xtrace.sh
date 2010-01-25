@@ -1,5 +1,5 @@
 #! @BASH@
-# Copyright (C) 1999, 2001-2006, 2007, 2008 Free Software Foundation, Inc.
+# Copyright (C) 1999, 2001-2008, 2009 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 # Contributed by Ulrich Drepper <drepper@gnu.org>, 1999.
 
@@ -54,8 +54,10 @@ do_help() {
 Mandatory arguments to long options are also mandatory for any corresponding
 short options.
 
-For bug reporting instructions, please see:
-<http://www.gnu.org/software/libc/bugs.html>.\n"
+"
+  printf $"For bug reporting instructions, please see:
+<http://www.gnu.org/software/libc/bugs.html>.
+"
   exit 0
 }
 
@@ -64,7 +66,7 @@ do_version() {
   printf $"Copyright (C) %s Free Software Foundation, Inc.
 This is free software; see the source for copying conditions.  There is NO
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-" "2008"
+" "2009"
   printf $"Written by %s.
 " "Ulrich Drepper"
   exit 0

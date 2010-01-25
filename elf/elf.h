@@ -608,7 +608,9 @@ typedef struct
 #define NT_PRXFPREG	0x46e62b7f	/* Contains copy of user_fxsr_struct */
 #define NT_PPC_VMX	0x100		/* PowerPC Altivec/VMX registers */
 #define NT_PPC_SPE	0x101		/* PowerPC SPE/EVR registers */
+#define NT_PPC_VSX	0x102		/* PowerPC VSX registers */
 #define NT_386_TLS	0x200		/* i386 TLS slots (struct user_desc) */
+#define NT_386_IOPERM	0x201		/* x86 io permission bitmap (1=deny) */
 
 /* Legal values for the note segment descriptor types for object files.  */
 
@@ -969,6 +971,10 @@ typedef struct
 #define AT_IGNOREPPC	22		/* Entry should be ignored.  */
 
 #define	AT_SECURE	23		/* Boolean, was exec setuid-like?  */
+
+#define AT_BASE_PLATFORM 24		/* String identifying real platforms.*/
+
+#define AT_RANDOM	25		/* Address of 16 random bytes.  */
 
 #define AT_EXECFN	31		/* Filename of executable.  */
 

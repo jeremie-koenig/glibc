@@ -1,4 +1,4 @@
-/* Copyright (c) 1998-2006, 2007, 2008 Free Software Foundation, Inc.
+/* Copyright (c) 1998-2008, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Thorsten Kukuk <kukuk@suse.de>, 1998.
 
@@ -91,6 +91,9 @@ static int write_pid (const char *file);
 static void print_version (FILE *stream, struct argp_state *state);
 void (*argp_program_version_hook) (FILE *, struct argp_state *) = print_version;
 
+/* Function to print some extra text in the help message.  */
+static char *more_help (int key, const char *text, void *input);
+
 /* Definitions of arguments for argp functions.  */
 static const struct argp_option options[] =
 {
@@ -117,7 +120,7 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state);
 /* Data structure to communicate with argp functions.  */
 static struct argp argp =
 {
-  options, parse_opt, NULL, doc,
+  options, parse_opt, NULL, doc, NULL, more_help
 };
 
 /* True if only statistics are requested.  */
@@ -338,7 +341,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 	      break;
 
 	  if (cnt == lastdb)
-	    return ARGP_ERR_UNKNOWN;
+	    {
+	      argp_error (state, _("'%s' is not a known database"), arg);
+	      return EINVAL;
+	    }
 
 	  size_t arg_len = strlen (arg) + 1;
 	  struct
@@ -398,6 +404,23 @@ parse_opt (int key, char *arg, struct argp_state *state)
   return 0;
 }
 
+/* Print bug-reporting information in the help message.  */
+static char *
+more_help (int key, const char *text, void *input)
+{
+  switch (key)
+    {
+    case ARGP_KEY_HELP_EXTRA:
+      /* We print some extra information.  */
+      return strdup (gettext ("\
+For bug reporting instructions, please see:\n\
+<http://www.gnu.org/software/libc/bugs.html>.\n"));
+    default:
+      break;
+    }
+  return (char *) text;
+}
+
 /* Print the version information.  */
 static void
 print_version (FILE *stream, struct argp_state *state)
@@ -407,7 +430,7 @@ print_version (FILE *stream, struct argp_state *state)
 Copyright (C) %s Free Software Foundation, Inc.\n\
 This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
-"), "2008");
+"), "2009");
   fprintf (stream, gettext ("Written by %s.\n"),
 	   "Thorsten Kukuk and Ulrich Drepper");
 }
