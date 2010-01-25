@@ -5,3 +5,7 @@ Subject: [PATCH] __rtld_lock_recursive_t
 
 	* sysdeps/mach/hurd/bits/libc-lock.h (__rtld_lock_recursive_t): New
 	typedef.
+
+2009-08-09  Thomas Schwinge  <tschwinge@gnu.org>
+
+	* sysdeps/mach/hurd/bits/libc-lock.h (__rtld_lock_initialize): Define.
