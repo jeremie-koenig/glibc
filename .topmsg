@@ -8,3 +8,14 @@ Needed for HEAD and glibc-2_7-branch.
 <http://sources.redhat.com/ml/libc-alpha/2002-12/msg00011.html>
 
 Reported on <http://savannah.gnu.org/bugs/?18216>.
+
+
+2007-10-05  Thomas Schwinge  <tschwinge@gnu.org>
+
+	* sysdeps/mach/hurd/bits/stat.h (struct stat): Align to what is done
+	for Linux: use nsec instead of usec, as well as:
+	[__USE_MISC] (st_atim, st_mtim, st_ctim): Provide these ``struct
+	timespec''s.
+	(struct stat64): Likewise.
+	(_STATBUF_ST_NSEC): Define.
+	* sysdeps/mach/hurd/xstatconv.c (xstat64_conv): Adapt to that.
