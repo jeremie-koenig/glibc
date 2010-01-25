@@ -1,4 +1,7 @@
 From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] dl-sysdep.c_SHARED
 
-sysdeps/mach/hurd/dl-sysdep.c: Content is only needed in certain cases.
+2009-08-03  Thomas Schwinge  <tschwinge@gnu.org>
+
+	* sysdeps/mach/hurd/dl-sysdep.c: Content is only needed in certain
+	cases.
