@@ -29,7 +29,7 @@ routines	= $(dl-routines) dl-support dl-iteratephdr \
 # profiled libraries.
 dl-routines	= $(addprefix dl-,load cache lookup object reloc deps \
 			          runtime error init fini debug misc \
-				  version profile conflict tls origin \
+				  version profile conflict tls origin scope \
 				  execstack caller open close trampoline)
 all-dl-routines = $(dl-routines) $(sysdep-dl-routines)
 # But they are absent from the shared libc, because that code is in ld.so.
@@ -47,7 +47,7 @@ distribute	:= rtld-Rules \
 		   dl-cache.h dl-hash.h soinit.c sofini.c ldd.bash.in \
 		   genrtldtbl.awk atomicity.h dl-procinfo.h ldsodefs.h \
 		   dl-librecon.h interp.c sln.c dl-dst.h hp-timing.h \
-		   do-lookup.h dl-lookupcfg.h sprof.c gen-trusted-dirs.awk \
+		   dl-lookupcfg.h sprof.c gen-trusted-dirs.awk \
 		   testobj1.c testobj2.c testobj3.c testobj4.c testobj5.c \
 		   testobj6.c testobj1_1.c failobj.c unloadmod.c \
 		   ldconfig.h ldconfig.c cache.c readlib.c readelflib.c \
@@ -89,8 +89,10 @@ distribute	:= rtld-Rules \
 		   unload4mod1.c unload4mod2.c unload4mod3.c unload4mod4.c \
 		   unload6mod1.c unload6mod2.c unload6mod3.c \
 		   unload7mod1.c unload7mod2.c \
-		   tst-audit1.c tst-audit2.c tst-audit3.c \
+		   tst-audit1.c tst-audit2.c tst-audit3.c tst-audit4.c \
 		   tst-auditmod1.c tst-auditmod3a.c tst-auditmod3b.c \
+		   tst-auditmod4a.c tst-auditmod4b.c \
+		   tst-audit5.c tst-auditmod5a.c tst-auditmod5b.c \
 		   order2mod1.c order2mod2.c order2mod3.c order2mod4.c \
 		   tst-stackguard1.c tst-stackguard1-static.c \
 		   tst-array5.c tst-array5-static.c tst-array5dep.c \
@@ -198,7 +200,7 @@ tests += loadtest restest1 preloadtest loadfail multiload origtest resolvfail \
 test-srcs = tst-pathopt
 tests-execstack-yes = tst-execstack tst-execstack-needed tst-execstack-prog
 ifeq (x86_64,$(config-machine))
-tests += tst-audit3
+tests += tst-audit3 tst-audit4 tst-audit5
 endif
 endif
 ifeq (yesyes,$(have-fpie)$(build-shared))
@@ -237,7 +239,6 @@ modules-names = testobj1 testobj2 testobj3 testobj4 testobj5 testobj6 \
 		$(modules-execstack-$(have-z-execstack)) \
 		tst-dlopenrpathmod tst-deep1mod1 tst-deep1mod2 tst-deep1mod3 \
 		tst-dlmopen1mod tst-auditmod1 \
-		tst-auditmod3a tst-auditmod3b \
 		unload3mod1 unload3mod2 unload3mod3 unload3mod4 \
 		unload4mod1 unload4mod2 unload4mod3 unload4mod4 \
 		unload6mod1 unload6mod2 unload6mod3 \
@@ -250,6 +251,11 @@ modules-names += tst-array2dep tst-array5dep
 endif
 ifeq (yesyes,$(have-fpie)$(build-shared))
 modules-names += tst-piemod1
+endif
+ifeq (x86_64,$(config-machine))
+modules-names += tst-auditmod3a tst-auditmod3b \
+		tst-auditmod4a tst-auditmod4b \
+		tst-auditmod5a tst-auditmod5b
 endif
 modules-execstack-yes = tst-execstack-mod
 extra-test-objs += $(addsuffix .os,$(strip $(modules-names)))
@@ -973,6 +979,14 @@ $(objpfx)tst-audit3: $(objpfx)tst-auditmod3a.so
 $(objpfx)tst-audit3.out: $(objpfx)tst-auditmod3b.so
 tst-audit3-ENV = LD_AUDIT=$(objpfx)tst-auditmod3b.so
 
+$(objpfx)tst-audit4: $(objpfx)tst-auditmod4a.so
+$(objpfx)tst-audit4.out: $(objpfx)tst-auditmod4b.so
+tst-audit4-ENV = LD_AUDIT=$(objpfx)tst-auditmod4b.so
+
+$(objpfx)tst-audit5: $(objpfx)tst-auditmod5a.so
+$(objpfx)tst-audit5.out: $(objpfx)tst-auditmod5b.so
+tst-audit5-ENV = LD_AUDIT=$(objpfx)tst-auditmod5b.so
+
 $(objpfx)tst-global1: $(libdl)
 $(objpfx)tst-global1.out: $(objpfx)testobj6.so $(objpfx)testobj2.so
 
@@ -1115,3 +1129,9 @@ $(objpfx)tst-unique1.out: $(objpfx)tst-unique1mod1.so \
 
 $(objpfx)tst-unique2: $(libdl) $(objpfx)tst-unique2mod1.so
 $(objpfx)tst-unique2.out: $(objpfx)tst-unique2mod2.so
+
+ifeq (yes,$(config-cflags-avx))
+CFLAGS-tst-audit4.c += -mavx
+CFLAGS-tst-auditmod4a.c += -mavx
+CFLAGS-tst-auditmod4b.c += -mavx
+endif
