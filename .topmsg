@@ -2,3 +2,8 @@ From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] tls-threadvar
 
 (Evaluate whether to) replace the custom threadvar mechanism with generic TLS.
+
+
+Do not yet use TLS for errno.
+
+glibc-2.8/debian/patches/hurd-i386/local-tls.diff 3057
