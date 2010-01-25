@@ -1,0 +1,10 @@
+From: Thomas Schwinge <thomas@schwinge.name>
+Subject: [PATCH] struct_stat
+
+``struct stat'' fixes.
+
+Needed for HEAD and glibc-2_7-branch.
+
+<http://sources.redhat.com/ml/libc-alpha/2002-12/msg00011.html>
+
+Reported on <http://savannah.gnu.org/bugs/?18216>.
