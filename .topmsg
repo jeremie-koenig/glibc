@@ -1,0 +1,4 @@
+From: Thomas Schwinge <thomas@schwinge.name>
+Subject: [PATCH] extern_inline
+
+Fix some ``extern inline'' stuff.
