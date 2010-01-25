@@ -1,0 +1,4 @@
+From: Thomas Schwinge <thomas@schwinge.name>
+Subject: [PATCH] unwind-resume.c
+
+Generalized unwind-resume support for GNU.
