@@ -2,3 +2,5 @@ From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] strtoul_PLT
 
 Don't go through the PLT for strtoul.
+
+glibc-2.8/debian/patches/hurd-i386/submitted-strtoul.diff 3057
