@@ -1,6 +1,12 @@
 From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] bits_atomic.h_multiple_threads
 
-Need to override sysdeps/i386/i486/bits/atomic.h to remove Linuxisms.
+TODO.  bits/atomic.h for GNU Hurd.
+    
+Source: Debian, eglibc-2.10/debian/patches/hurd-i386/local-atomic-no-multiple_threads.diff, r3536.
+Author: TBD.
 
-glibc-2.8/debian/patches/hurd-i386/local-atomic-no-multiple_threads.diff 3085
+We always at least start the sigthread anyway.  For now, let's avoid forking
+the file (which would mean having to maintain it).
+
+Need to override sysdeps/i386/i486/bits/atomic.h to remove Linuxisms.
