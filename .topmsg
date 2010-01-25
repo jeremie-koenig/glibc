@@ -2,3 +2,7 @@ From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] kernel-features.h_includes
 
 Add missing <kernel-features.h> includes.
+
+2009-08-03  Thomas Schwinge  <tschwinge@gnu.org>
+
+	* misc/syslog.c: Include <kernel-features.h>.
