@@ -1,0 +1,4 @@
+From: Thomas Schwinge <thomas@schwinge.name>
+Subject: [PATCH] bits_atomic.h_multiple_threads
+
+Need to override sysdeps/i386/i486/bits/atomic.h to remove Linuxisms.
