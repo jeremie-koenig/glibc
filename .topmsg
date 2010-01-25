@@ -1,13 +1,4 @@
 From: Thomas Schwinge <thomas@schwinge.name>
-Subject: [PATCH] tls
+Subject: [PATCH] tls-threadvar
 
-TLS support.
-
-All by Samuel Thibault.
-
-glibc-2.8/debian/patches/hurd-i386/local-tls-support.diff 3151
-
-2009-07-30  Samuel Thibault  <samuel.thibault@gnu.org>
-
-	Align up includes as on Linux, to fix build.
-	* sysdeps/mach/hurd/tls.h: Include <sysdep.h>.
+(Evaluate whether to) replace the custom threadvar mechanism with generic TLS.
