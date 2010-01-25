@@ -2,3 +2,7 @@ From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] gscope
 
 Minimal gscope stuff.
+
+glibc-2.8/debian/patches/hurd-i386/local-gscope.diff 3085
+
+Probably written by Samuel Thibault.
