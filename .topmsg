@@ -2,3 +2,7 @@ From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] extern_inline
 
 Fix some ``extern inline'' stuff.
+
+glibc-2.8/debian/patches/hurd-i386/submitted-extern_inline.diff 3057
+
+Probably all done by Samuel Thibault.
