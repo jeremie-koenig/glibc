@@ -1,0 +1,4 @@
+From: Thomas Schwinge <thomas@schwinge.name>
+Subject: [PATCH] _dl_random
+
+_dl_random
