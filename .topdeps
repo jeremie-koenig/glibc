@@ -1,2 +1,2 @@
-verify.h
-bits_socket.h
+t/verify.h
+t/bits_socket.h
