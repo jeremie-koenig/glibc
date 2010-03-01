@@ -1,4 +1,4 @@
-/* Copyright (c) 1998-2007, 2008 Free Software Foundation, Inc.
+/* Copyright (c) 1998-2008, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Thorsten Kukuk <kukuk@suse.de>, 1998.
 
@@ -59,9 +59,7 @@ static const struct argp_option args_options[] =
   };
 
 /* Short description of program.  */
-static const char doc[] = N_("Get entries from administrative database.\v\
-For bug reporting instructions, please see:\n\
-<http://www.gnu.org/software/libc/bugs.html>.\n");
+static const char doc[] = N_("Get entries from administrative database.");
 
 /* Prototype for option handler.  */
 static error_t parse_option (int key, char *arg, struct argp_state *state);
@@ -84,7 +82,7 @@ print_version (FILE *stream, struct argp_state *state)
 Copyright (C) %s Free Software Foundation, Inc.\n\
 This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
-"), "2008");
+"), "2009");
   fprintf (stream, gettext ("Written by %s.\n"), "Thorsten Kukuk");
 }
 
@@ -448,8 +446,6 @@ print_networks (struct netent *net)
       putchar_unlocked (' ');
       fputs_unlocked (net->n_aliases[i], stdout);
       ++i;
-      if (net->n_aliases[i] != NULL)
-	putchar_unlocked (',');
     }
   putchar_unlocked ('\n');
 }
@@ -840,6 +836,12 @@ more_help (int key, const char *text, void *input)
 	      fputs_unlocked (databases[i].name, fp);
 	      col += len + 1;
 	    }
+
+	  fputs ("\n\n", fp);
+
+	  fprintf (fp, gettext ("\
+For bug reporting instructions, please see:\n\
+<http://www.gnu.org/software/libc/bugs.html>.\n"));
 
 	  if (fclose (fp) == 0)
 	    return doc;
