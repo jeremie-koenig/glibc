@@ -13,3 +13,4 @@ t/check_native
 t/_dl_random
 t/gscope
 t/strtoul_PLT
+t/kernel-features.h_includes
