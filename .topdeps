@@ -19,3 +19,4 @@ t/socketpair_flags
 t/pipe2
 t/dup3
 t/accept4
+t/bits_sched.h
