@@ -33,3 +33,4 @@
 #endif
 
 #define __ASSUME_SOCK_CLOEXEC	1
+#define __ASSUME_PIPE2		1
