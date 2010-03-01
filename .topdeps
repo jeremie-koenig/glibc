@@ -16,3 +16,4 @@ t/strtoul_PLT
 t/kernel-features.h_includes
 t/socket_flags
 t/socketpair_flags
+t/pipe2
