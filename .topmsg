@@ -4,3 +4,10 @@ Subject: [PATCH] bits_sched.h
 bits/sched.h
 
 glibc-2.8/debian/patches/any/submitted-sched_h.diff 3057
+
+---
+
+    /media/Stalin/tmp/glibc.hurd.gnu-2/libc_pic.os: In function `__sched_cpualloc':
+    /media/data/home/thomas/tmp/source/glibc/git/glibc.hurd/posix/sched_cpualloc.c:26: undefined reference to `__CPU_ALLOC_SIZE'
+    collect2: ld returned 1 exit status
+    make[1]: *** [/media/Stalin/tmp/glibc.hurd.gnu-2/libc.so] Error 1
