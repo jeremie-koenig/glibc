@@ -55,6 +55,15 @@
 
 #define STACK_GROWTH_DOWN
 
+/* Pointer mangling is not yet supported for Hurd.  */
+#ifdef __ASSEMBLER__
+#define PTR_MANGLE(var)
+#define PTR_DEMANGLE(var)
+#else
+#define PTR_MANGLE(var) (void) (var)
+#define PTR_DEMANGLE(var) (void) (var)
+#endif
+
 /* Get the machine-independent Mach definitions.  */
 #include <sysdeps/mach/sysdep.h>
 
