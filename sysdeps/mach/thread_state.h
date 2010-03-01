@@ -38,6 +38,9 @@
   ((ts)->SP = (unsigned long int) (stack) + (size))
 #endif
 #endif
+#ifndef MACHINE_THREAD_STATE_FIX_NEW
+#define MACHINE_THREAD_STATE_FIX_NEW(ts)
+#endif
 
 /* These functions are of use in machine-dependent signal trampoline
    implementations.  */
