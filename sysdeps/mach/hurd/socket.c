@@ -1,4 +1,6 @@
-/* Copyright (C) 1992, 93, 94, 95, 96, 97, 98 Free Software Foundation, Inc.
+/* Copyright (C) 1992, 1993, 1994, 1995, 1996, 1997, 1998, 2008 Free Software
+   Foundation, Inc.
+
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -22,6 +24,7 @@
 #include <hurd/socket.h>
 #include <hurd/fd.h>
 #include <fcntl.h>
+#include <fcntl-internal.h>
 
 /* Create a new socket of type TYPE in domain DOMAIN, using
    protocol PROTOCOL.  If PROTOCOL is zero, one is chosen automatically.
@@ -34,6 +37,11 @@ __socket (domain, type, protocol)
 {
   error_t err;
   socket_t sock, server;
+  int flags = sock_to_o_flags (type & ~SOCK_TYPE_MASK);
+  type &= SOCK_TYPE_MASK;
+
+  if (flags & ~(O_CLOEXEC | O_NONBLOCK))
+    return __hurd_fail (EINVAL);
 
   /* Find the socket server for DOMAIN.  */
   server = _hurd_socket_server (domain, 0);
@@ -59,10 +67,17 @@ __socket (domain, type, protocol)
       || err == MIG_BAD_ID || err == EOPNOTSUPP)
     err = EPFNOSUPPORT;
 
+  if (! err)
+    {
+      if (flags & O_NONBLOCK)
+	err = __io_set_some_openmodes (sock, O_NONBLOCK);
+      /* TODO: do we need special ERR massaging after the previous call?  */
+    }
+
   if (err)
     return __hurd_fail (err);
 
-  return _hurd_intern_fd (sock, O_IGNORE_CTTY, 1);
+  return _hurd_intern_fd (sock, O_IGNORE_CTTY | flags, 1);
 }
 
 weak_alias (__socket, socket)
