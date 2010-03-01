@@ -11,3 +11,4 @@ t/bits_stdio-lock.h
 t/ptrmangle
 t/check_native
 t/_dl_random
+t/gscope
