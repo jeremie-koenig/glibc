@@ -6,3 +6,4 @@ t/struct_stat
 t/tls
 t/tls-threadvar
 t/tlsdesc.sym
+t/bits_atomic.h_multiple_threads
