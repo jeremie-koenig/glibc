@@ -138,6 +138,7 @@ int (*_dl_make_stack_executable_hook) (void **) internal_function
 /* Function in libpthread to wait for termination of lookups.  */
 void (*_dl_wait_lookup_done) (void);
 
+int volatile _dl_thread_gscope_count;
 struct dl_scope_free_list *_dl_scope_free_list;
 
 #ifdef NEED_DL_SYSINFO

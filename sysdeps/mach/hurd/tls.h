@@ -77,5 +77,18 @@ typedef struct
 
 #endif /* HAVE_TLS_SUPPORT */
 
+#ifndef __ASSEMBLER__
+#include <mach/mach_traps.h>
+#include <atomic.h>
+/* Temporary poor-man's global scope switch support: just busy-waits */
+#define THREAD_GSCOPE_SET_FLAG() \
+	asm volatile ("lock incl %0":"=m"(GL(dl_thread_gscope_count)))
+#define THREAD_GSCOPE_RESET_FLAG() \
+	asm volatile ("lock decl %0":"=m"(GL(dl_thread_gscope_count)))
+#define THREAD_GSCOPE_WAIT() \
+  while (GL(dl_thread_gscope_count)) { \
+    __swtch_pri (0); \
+  }
+#endif
 
 #endif /* tls.h */

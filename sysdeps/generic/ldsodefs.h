@@ -494,6 +494,7 @@ struct rtld_global
     size_t count;
     void *list[50];
   } *_dl_scope_free_list;
+  EXTERN volatile int _dl_thread_gscope_count;
 #ifdef SHARED
 };
 # define __rtld_global_attribute__
