@@ -6,3 +6,9 @@ Subject: [PATCH] check_native
 	* sysdeps/mach/hurd/check_native.c: New file.
 
 For now only a dummy.
+
+---
+
+    make[2]: *** No rule to make target `/media/Stalin/tmp/glibc.hurd.gnu-2/inet/check_native.o', needed by `/media/Stalin/tmp/glibc.hurd.gnu-2/inet/stamp.o'.  Stop.
+    make[2]: Leaving directory `/media/data/home/thomas/tmp/source/glibc/git/glibc.hurd/inet'
+    make[1]: *** [inet/subdir_lib] Error 2
