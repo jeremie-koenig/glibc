@@ -5,3 +5,24 @@ Subject: [PATCH] dl-sysdep.c_SHARED
 
 	* sysdeps/mach/hurd/dl-sysdep.c: Content is only needed in certain
 	cases.
+
+---
+
+    /media/Stalin/tmp/glibc.hurd.gnu-2/libc.a(dl-sysdep.o): In function `_dl_important_hwcaps':
+    /media/data/home/thomas/tmp/source/glibc/git/glibc.hurd/elf/../sysdeps/mach/hurd/dl-sysdep.c:653: multiple definition of `_dl_important_hwcaps'
+    /media/Stalin/tmp/glibc.hurd.gnu-2/libc.a(dl-support.o):/media/data/home/thomas/tmp/source/glibc/git/glibc.hurd/elf/dl-support.c:313: first defined here
+    /media/Stalin/tmp/glibc.hurd.gnu-2/libc.a(dl-sysdep.o):(.data.rel.ro+0x0): multiple definition of `__libc_enable_secure'
+    /media/Stalin/tmp/glibc.hurd.gnu-2/libc.a(init-first.o):(.data.rel.ro+0x0): first defined here
+    /media/Stalin/tmp/glibc.hurd.gnu-2/libc.a(dl-sysdep.o): In function `use_init_port':
+    /media/data/home/thomas/tmp/source/glibc/git/glibc.hurd/elf/../sysdeps/mach/hurd/dl-sysdep.c:302: multiple definition of `__libc_multiple_libcs'
+    /media/Stalin/tmp/glibc.hurd.gnu-2/libc.a(init-first.o):(.data+0x0): first defined here
+    /media/Stalin/tmp/glibc.hurd.gnu-2/libc.a(dl-sysdep.o):(.data.rel.ro+0x8): multiple definition of `__libc_stack_end'
+    /media/Stalin/tmp/glibc.hurd.gnu-2/libc.a(dl-support.o):(.data.rel.ro+0x4): first defined here
+    /media/Stalin/tmp/glibc.hurd.gnu-2/libc.a(dl-sysdep.o): In function `go.11385':
+    dl-sysdep.c:(.text+0xb22): undefined reference to `_dl_argc'
+    dl-sysdep.c:(.text+0xbb2): undefined reference to `_dl_skip_args'
+    dl-sysdep.c:(.text+0xbca): undefined reference to `_dl_skip_args'
+    dl-sysdep.c:(.text+0xbfc): undefined reference to `_dl_start_user'
+    collect2: ld returned 1 exit status
+    make[2]: *** [/media/Stalin/tmp/glibc.hurd.gnu-2/elf/sln] Error 1
+    make[2]: Leaving directory `/media/data/home/thomas/tmp/source/glibc/git/glibc.hurd/elf'
