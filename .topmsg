@@ -4,3 +4,12 @@ Subject: [PATCH] strtoul_PLT
 Don't go through the PLT for strtoul.
 
 glibc-2.8/debian/patches/hurd-i386/submitted-strtoul.diff 3057
+
+---
+
+    /media/Stalin/tmp/glibc.hurd.gnu-2/elf/librtld.os: In function `strtoul':
+    /media/data/home/thomas/tmp/source/glibc/git/glibc.hurd/stdlib/strtol.c:110: undefined reference to `__libc_tsd_LOCALE_data'
+    /media/Stalin/tmp/glibc.hurd.gnu-2/elf/librtld.os: In function `__strtoul_internal':
+    /media/data/home/thomas/tmp/source/glibc/git/glibc.hurd/stdlib/strtol.c:99: undefined reference to `__libc_tsd_LOCALE_data'
+    collect2: ld returned 1 exit status
+    make[2]: *** [/media/Stalin/tmp/glibc.hurd.gnu-2/elf/ld.so] Error 1
