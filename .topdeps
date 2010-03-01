@@ -4,3 +4,4 @@ t/kernel-features.h_includes
 t/libc_once
 t/struct_stat
 t/tls
+t/tls-threadvar
