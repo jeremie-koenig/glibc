@@ -1,7 +1,8 @@
 From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] tls-threadvar
 
-(Evaluate whether to) replace the custom threadvar mechanism with generic TLS.
+TODO: replace the custom threadvar mechanism with generic TLS.
+That will fix sigaltstack.
 
 
 Do not yet use TLS for errno.
