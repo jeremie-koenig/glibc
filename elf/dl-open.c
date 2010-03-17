@@ -1,5 +1,5 @@
 /* Load a shared object at runtime, relocate it, and run its initializer.
-   Copyright (C) 1996-2004, 2005, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 1996-2007, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -165,51 +165,12 @@ add_to_global (struct link_map *new)
   return 0;
 }
 
-int
-_dl_scope_free (void *old)
-{
-  struct dl_scope_free_list *fsl;
-#define DL_SCOPE_FREE_LIST_SIZE (sizeof (fsl->list) / sizeof (fsl->list[0]))
-
-  if (RTLD_SINGLE_THREAD_P)
-    free (old);
-  else if ((fsl = GL(dl_scope_free_list)) == NULL)
-    {
-      GL(dl_scope_free_list) = fsl = malloc (sizeof (*fsl));
-      if (fsl == NULL)
-	{
-	  THREAD_GSCOPE_WAIT ();
-	  free (old);
-	  return 1;
-	}
-      else
-	{
-	  fsl->list[0] = old;
-	  fsl->count = 1;
-	}
-    }
-  else if (fsl->count < DL_SCOPE_FREE_LIST_SIZE)
-    fsl->list[fsl->count++] = old;
-  else
-    {
-      THREAD_GSCOPE_WAIT ();
-      while (fsl->count > 0)
-	free (fsl->list[--fsl->count]);
-      return 1;
-    }
-  return 0;
-}
-
 static void
 dl_open_worker (void *a)
 {
   struct dl_open_args *args = a;
   const char *file = args->file;
   int mode = args->mode;
-  struct link_map *new;
-  int lazy;
-  unsigned int i;
-  bool any_tls = false;
   struct link_map *call_map = NULL;
 
   /* Check whether _dl_open() has been called from a valid DSO.  */
@@ -232,7 +193,7 @@ dl_open_worker (void *a)
       call_map = GL(dl_ns)[LM_ID_BASE]._ns_loaded;
 
       struct link_map *l;
-      for (Lmid_t ns = 0; ns < DL_NNS; ++ns)
+      for (Lmid_t ns = 0; ns < GL(dl_nns); ++ns)
 	for (l = GL(dl_ns)[ns]._ns_loaded; l != NULL; l = l->l_next)
 	  if (caller_dlopen >= (const void *) l->l_map_start
 	      && caller_dlopen < (const void *) l->l_map_end
@@ -263,15 +224,14 @@ dl_open_worker (void *a)
   if (__builtin_expect (dst != NULL, 0))
     {
       size_t len = strlen (file);
-      size_t required;
-      char *new_file;
 
       /* Determine how much space we need.  We have to allocate the
 	 memory locally.  */
-      required = DL_DST_REQUIRED (call_map, file, len, _dl_dst_count (dst, 0));
+      size_t required = DL_DST_REQUIRED (call_map, file, len,
+					 _dl_dst_count (dst, 0));
 
       /* Get space for the new file name.  */
-      new_file = (char *) alloca (required + 1);
+      char *new_file = (char *) alloca (required + 1);
 
       /* Generate the new file name.  */
       _dl_dst_substitute (call_map, file, new_file, 0);
@@ -290,6 +250,7 @@ dl_open_worker (void *a)
     }
 
   /* Load the named object.  */
+  struct link_map *new;
   args->map = new = _dl_map_object (call_map, file, 0, lt_loaded, 0,
 				    mode | __RTLD_CALLMAP, args->nsid);
 
@@ -331,7 +292,7 @@ dl_open_worker (void *a)
 		       mode & (__RTLD_DLOPEN | RTLD_DEEPBIND | __RTLD_AUDIT));
 
   /* So far, so good.  Now check the versions.  */
-  for (i = 0; i < new->l_searchlist.r_nlist; ++i)
+  for (unsigned int i = 0; i < new->l_searchlist.r_nlist; ++i)
     if (new->l_searchlist.r_list[i]->l_real->l_versions == NULL)
       (void) _dl_check_map_versions (new->l_searchlist.r_list[i]->l_real,
 				     0, 0);
@@ -366,7 +327,9 @@ dl_open_worker (void *a)
   _dl_debug_state ();
 
   /* Only do lazy relocation if `LD_BIND_NOW' is not set.  */
-  lazy = (mode & RTLD_BINDING_MASK) == RTLD_LAZY && GLRO(dl_lazy);
+  int reloc_mode = mode & __RTLD_AUDIT;
+  if (GLRO(dl_lazy))
+    reloc_mode |= mode & RTLD_LAZY;
 
   /* Relocate the objects loaded.  We do this in reverse order so that copy
      relocs of earlier objects overwrite the data written by later objects.  */
@@ -388,7 +351,7 @@ dl_open_worker (void *a)
 		 start the profiling.  */
 	      struct link_map *old_profile_map = GL(dl_profile_map);
 
-	      _dl_relocate_object (l, l->l_scope, 1, 1);
+	      _dl_relocate_object (l, l->l_scope, reloc_mode | RTLD_LAZY, 1);
 
 	      if (old_profile_map == NULL && GL(dl_profile_map) != NULL)
 		{
@@ -401,7 +364,7 @@ dl_open_worker (void *a)
 	    }
 	  else
 #endif
-	    _dl_relocate_object (l, l->l_scope, lazy, 0);
+	    _dl_relocate_object (l, l->l_scope, reloc_mode, 0);
 	}
 
       if (l == new)
@@ -411,7 +374,8 @@ dl_open_worker (void *a)
 
   /* If the file is not loaded now as a dependency, add the search
      list of the newly loaded object to the scope.  */
-  for (i = 0; i < new->l_searchlist.r_nlist; ++i)
+  bool any_tls = false;
+  for (unsigned int i = 0; i < new->l_searchlist.r_nlist; ++i)
     {
       struct link_map *imap = new->l_searchlist.r_list[i];
 
@@ -491,6 +455,18 @@ dl_open_worker (void *a)
 
 	  if (imap->l_need_tls_init)
 	    {
+	      /* For static TLS we have to allocate the memory here
+		 and now.  This includes allocating memory in the DTV.
+		 But we cannot change any DTV other than our own. So,
+		 if we cannot guarantee that there is room in the DTV
+		 we don't even try it and fail the load.
+
+		 XXX We could track the minimum DTV slots allocated in
+		 all threads.  */
+	      if (! RTLD_SINGLE_THREAD_P && imap->l_tls_modid > DTV_SURPLUS)
+		_dl_signal_error (0, "dlopen", NULL, N_("\
+cannot load any more object with static TLS"));
+
 	      imap->l_need_tls_init = 0;
 #ifdef SHARED
 	      /* Update the slot information data for at least the
@@ -551,14 +527,14 @@ _dl_open (const char *file, int mode, const void *caller_dlopen, Lmid_t nsid,
   /* Make sure we are alone.  */
   __rtld_lock_lock_recursive (GL(dl_load_lock));
 
-  if (nsid == LM_ID_NEWLM)
+  if (__builtin_expect (nsid == LM_ID_NEWLM, 0))
     {
       /* Find a new namespace.  */
-      for (nsid = 1; nsid < DL_NNS; ++nsid)
+      for (nsid = 1; nsid < GL(dl_nns); ++nsid)
 	if (GL(dl_ns)[nsid]._ns_loaded == NULL)
 	  break;
 
-      if (nsid == DL_NNS)
+      if (__builtin_expect (nsid == DL_NNS, 0))
 	{
 	  /* No more namespace available.  */
 	  __rtld_lock_unlock_recursive (GL(dl_load_lock));
@@ -567,16 +543,28 @@ _dl_open (const char *file, int mode, const void *caller_dlopen, Lmid_t nsid,
 no more namespaces available for dlmopen()"));
 	}
 
+      if (nsid == GL(dl_nns))
+	{
+	  __rtld_lock_initialize (GL(dl_ns)[nsid]._ns_unique_sym_table.lock);
+	  ++GL(dl_nns);
+	}
+
       _dl_debug_initialize (0, nsid)->r_state = RT_CONSISTENT;
     }
   /* Never allow loading a DSO in a namespace which is empty.  Such
      direct placements is only causing problems.  Also don't allow
      loading into a namespace used for auditing.  */
-  else if (nsid != LM_ID_BASE && nsid != __LM_ID_CALLER
+  else if (__builtin_expect (nsid != LM_ID_BASE && nsid != __LM_ID_CALLER, 0)
 	   && (GL(dl_ns)[nsid]._ns_nloaded == 0
 	       || GL(dl_ns)[nsid]._ns_loaded->l_auditing))
     _dl_signal_error (EINVAL, file, NULL,
 		      N_("invalid target namespace in dlmopen()"));
+#ifndef SHARED
+  else if ((nsid == LM_ID_BASE || nsid == __LM_ID_CALLER)
+	   && GL(dl_ns)[LM_ID_BASE]._ns_loaded == NULL
+	   && GL(dl_nns) == 0)
+    GL(dl_nns) = 1;
+#endif
 
   struct dl_open_args args;
   args.file = file;
