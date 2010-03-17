@@ -9,3 +9,9 @@ Subject: [PATCH] __rtld_lock_recursive_t
 2009-08-09  Thomas Schwinge  <tschwinge@gnu.org>
 
 	* sysdeps/mach/hurd/bits/libc-lock.h (__rtld_lock_initialize): Define.
+
+---
+
+    In file included from setup-thread.c:23:
+    ../sysdeps/generic/ldsodefs.h:393: error: expected specifier-qualifier-list before ‘__rtld_lock_recursive_t’
+    make[2]: *** [/home/tschwinge/tmp/glibc/tschwinge--Roger_Whittaker.build/mach/setup-thread.o] Error 1
