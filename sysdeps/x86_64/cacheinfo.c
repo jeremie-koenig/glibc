@@ -1,5 +1,5 @@
 /* x86_64 cache info.
-   Copyright (C) 2003, 2004, 2006, 2007 Free Software Foundation, Inc.
+   Copyright (C) 2003, 2004, 2006, 2007, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -22,78 +22,118 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <cpuid.h>
+
+#ifndef __cpuid_count
+/* FIXME: Provide __cpuid_count if it isn't defined.  Copied from gcc
+   4.4.0.  Remove this if gcc 4.4 is the minimum requirement.  */
+# if defined(__i386__) && defined(__PIC__)
+/* %ebx may be the PIC register.  */
+#  define __cpuid_count(level, count, a, b, c, d)		\
+  __asm__ ("xchg{l}\t{%%}ebx, %1\n\t"			\
+	   "cpuid\n\t"					\
+	   "xchg{l}\t{%%}ebx, %1\n\t"			\
+	   : "=a" (a), "=r" (b), "=c" (c), "=d" (d)	\
+	   : "0" (level), "2" (count))
+# else
+#  define __cpuid_count(level, count, a, b, c, d)		\
+  __asm__ ("cpuid\n\t"					\
+	   : "=a" (a), "=b" (b), "=c" (c), "=d" (d)	\
+	   : "0" (level), "2" (count))
+# endif
+#endif
+
+#ifdef USE_MULTIARCH
+# include "multiarch/init-arch.h"
+
+# define is_intel __cpu_features.kind == arch_kind_intel
+# define is_amd __cpu_features.kind == arch_kind_amd
+# define max_cpuid __cpu_features.max_cpuid
+#else
+  /* This spells out "GenuineIntel".  */
+# define is_intel \
+  ebx == 0x756e6547 && ecx == 0x6c65746e && edx == 0x49656e69
+  /* This spells out "AuthenticAMD".  */
+# define is_amd \
+  ebx == 0x68747541 && ecx == 0x444d4163 && edx == 0x69746e65
+#endif
 
 static const struct intel_02_cache_info
 {
-  unsigned int idx;
-  int name;
-  long int size;
-  long int assoc;
-  long int linesize;
+  unsigned char idx;
+  unsigned char assoc;
+  unsigned char linesize;
+  unsigned char rel_name;
+  unsigned int size;
 } intel_02_known [] =
   {
-    { 0x06, _SC_LEVEL1_ICACHE_SIZE,    8192,  4, 32 },
-    { 0x08, _SC_LEVEL1_ICACHE_SIZE,   16384,  4, 32 },
-    { 0x09, _SC_LEVEL1_ICACHE_SIZE,   32768,  4, 32 },
-    { 0x0a, _SC_LEVEL1_DCACHE_SIZE,    8192,  2, 32 },
-    { 0x0c, _SC_LEVEL1_DCACHE_SIZE,   16384,  4, 32 },
-    { 0x0d, _SC_LEVEL1_DCACHE_SIZE,   16384,  4, 64 },
-    { 0x22, _SC_LEVEL3_CACHE_SIZE,   524288,  4, 64 },
-    { 0x23, _SC_LEVEL3_CACHE_SIZE,  1048576,  8, 64 },
-    { 0x25, _SC_LEVEL3_CACHE_SIZE,  2097152,  8, 64 },
-    { 0x29, _SC_LEVEL3_CACHE_SIZE,  4194304,  8, 64 },
-    { 0x2c, _SC_LEVEL1_DCACHE_SIZE,   32768,  8, 64 },
-    { 0x30, _SC_LEVEL1_ICACHE_SIZE,   32768,  8, 64 },
-    { 0x39, _SC_LEVEL2_CACHE_SIZE,   131072,  4, 64 },
-    { 0x3a, _SC_LEVEL2_CACHE_SIZE,   196608,  6, 64 },
-    { 0x3b, _SC_LEVEL2_CACHE_SIZE,   131072,  2, 64 },
-    { 0x3c, _SC_LEVEL2_CACHE_SIZE,   262144,  4, 64 },
-    { 0x3d, _SC_LEVEL2_CACHE_SIZE,   393216,  6, 64 },
-    { 0x3e, _SC_LEVEL2_CACHE_SIZE,   524288,  4, 64 },
-    { 0x3f, _SC_LEVEL2_CACHE_SIZE,   262144,  2, 64 },
-    { 0x41, _SC_LEVEL2_CACHE_SIZE,   131072,  4, 32 },
-    { 0x42, _SC_LEVEL2_CACHE_SIZE,   262144,  4, 32 },
-    { 0x43, _SC_LEVEL2_CACHE_SIZE,   524288,  4, 32 },
-    { 0x44, _SC_LEVEL2_CACHE_SIZE,  1048576,  4, 32 },
-    { 0x45, _SC_LEVEL2_CACHE_SIZE,  2097152,  4, 32 },
-    { 0x46, _SC_LEVEL3_CACHE_SIZE,  4194304,  4, 64 },
-    { 0x47, _SC_LEVEL3_CACHE_SIZE,  8388608,  8, 64 },
-    { 0x48, _SC_LEVEL2_CACHE_SIZE,  3145728, 12, 64 },
-    { 0x49, _SC_LEVEL2_CACHE_SIZE,  4194304, 16, 64 },
-    { 0x4a, _SC_LEVEL3_CACHE_SIZE,  6291456, 12, 64 },
-    { 0x4b, _SC_LEVEL3_CACHE_SIZE,  8388608, 16, 64 },
-    { 0x4c, _SC_LEVEL3_CACHE_SIZE, 12582912, 12, 64 },
-    { 0x4d, _SC_LEVEL3_CACHE_SIZE, 16777216, 16, 64 },
-    { 0x4e, _SC_LEVEL2_CACHE_SIZE,  6291456, 24, 64 },
-    { 0x60, _SC_LEVEL1_DCACHE_SIZE,   16384,  8, 64 },
-    { 0x66, _SC_LEVEL1_DCACHE_SIZE,    8192,  4, 64 },
-    { 0x67, _SC_LEVEL1_DCACHE_SIZE,   16384,  4, 64 },
-    { 0x68, _SC_LEVEL1_DCACHE_SIZE,   32768,  4, 64 },
-    { 0x78, _SC_LEVEL2_CACHE_SIZE,  1048576,  8, 64 },
-    { 0x79, _SC_LEVEL2_CACHE_SIZE,   131072,  8, 64 },
-    { 0x7a, _SC_LEVEL2_CACHE_SIZE,   262144,  8, 64 },
-    { 0x7b, _SC_LEVEL2_CACHE_SIZE,   524288,  8, 64 },
-    { 0x7c, _SC_LEVEL2_CACHE_SIZE,  1048576,  8, 64 },
-    { 0x7d, _SC_LEVEL2_CACHE_SIZE,  2097152,  8, 64 },
-    { 0x7f, _SC_LEVEL2_CACHE_SIZE,   524288,  2, 64 },
-    { 0x82, _SC_LEVEL2_CACHE_SIZE,   262144,  8, 32 },
-    { 0x83, _SC_LEVEL2_CACHE_SIZE,   524288,  8, 32 },
-    { 0x84, _SC_LEVEL2_CACHE_SIZE,  1048576,  8, 32 },
-    { 0x85, _SC_LEVEL2_CACHE_SIZE,  2097152,  8, 32 },
-    { 0x86, _SC_LEVEL2_CACHE_SIZE,   524288,  4, 64 },
-    { 0x87, _SC_LEVEL2_CACHE_SIZE,  1048576,  8, 64 },
-    { 0xd0, _SC_LEVEL3_CACHE_SIZE,   524288,  4, 64 },
-    { 0xd1, _SC_LEVEL3_CACHE_SIZE,  1048576,  4, 64 },
-    { 0xd2, _SC_LEVEL3_CACHE_SIZE,  2097152,  4, 64 },
-    { 0xd6, _SC_LEVEL3_CACHE_SIZE,  1048576,  8, 64 },
-    { 0xd7, _SC_LEVEL3_CACHE_SIZE,  2097152,  8, 64 },
-    { 0xd8, _SC_LEVEL3_CACHE_SIZE,  4194304,  8, 64 },
-    { 0xdc, _SC_LEVEL3_CACHE_SIZE,  2097152, 12, 64 },
-    { 0xdd, _SC_LEVEL3_CACHE_SIZE,  4194304, 12, 64 },
-    { 0xde, _SC_LEVEL3_CACHE_SIZE,  8388608, 12, 64 },
-    { 0xe3, _SC_LEVEL3_CACHE_SIZE,  2097152, 16, 64 },
-    { 0xe3, _SC_LEVEL3_CACHE_SIZE,  4194304, 16, 64 },
-    { 0xe4, _SC_LEVEL3_CACHE_SIZE,  8388608, 16, 64 },
+#define M(sc) ((sc) - _SC_LEVEL1_ICACHE_SIZE)
+    { 0x06,  4, 32, M(_SC_LEVEL1_ICACHE_SIZE),    8192 },
+    { 0x08,  4, 32, M(_SC_LEVEL1_ICACHE_SIZE),   16384 },
+    { 0x09,  4, 32, M(_SC_LEVEL1_ICACHE_SIZE),   32768 },
+    { 0x0a,  2, 32, M(_SC_LEVEL1_DCACHE_SIZE),    8192 },
+    { 0x0c,  4, 32, M(_SC_LEVEL1_DCACHE_SIZE),   16384 },
+    { 0x0d,  4, 64, M(_SC_LEVEL1_DCACHE_SIZE),   16384 },
+    { 0x21,  8, 64, M(_SC_LEVEL2_CACHE_SIZE),   262144 },
+    { 0x22,  4, 64, M(_SC_LEVEL3_CACHE_SIZE),   524288 },
+    { 0x23,  8, 64, M(_SC_LEVEL3_CACHE_SIZE),  1048576 },
+    { 0x25,  8, 64, M(_SC_LEVEL3_CACHE_SIZE),  2097152 },
+    { 0x29,  8, 64, M(_SC_LEVEL3_CACHE_SIZE),  4194304 },
+    { 0x2c,  8, 64, M(_SC_LEVEL1_DCACHE_SIZE),   32768 },
+    { 0x30,  8, 64, M(_SC_LEVEL1_ICACHE_SIZE),   32768 },
+    { 0x39,  4, 64, M(_SC_LEVEL2_CACHE_SIZE),   131072 },
+    { 0x3a,  6, 64, M(_SC_LEVEL2_CACHE_SIZE),   196608 },
+    { 0x3b,  2, 64, M(_SC_LEVEL2_CACHE_SIZE),   131072 },
+    { 0x3c,  4, 64, M(_SC_LEVEL2_CACHE_SIZE),   262144 },
+    { 0x3d,  6, 64, M(_SC_LEVEL2_CACHE_SIZE),   393216 },
+    { 0x3e,  4, 64, M(_SC_LEVEL2_CACHE_SIZE),   524288 },
+    { 0x3f,  2, 64, M(_SC_LEVEL2_CACHE_SIZE),   262144 },
+    { 0x41,  4, 32, M(_SC_LEVEL2_CACHE_SIZE),   131072 },
+    { 0x42,  4, 32, M(_SC_LEVEL2_CACHE_SIZE),   262144 },
+    { 0x43,  4, 32, M(_SC_LEVEL2_CACHE_SIZE),   524288 },
+    { 0x44,  4, 32, M(_SC_LEVEL2_CACHE_SIZE),  1048576 },
+    { 0x45,  4, 32, M(_SC_LEVEL2_CACHE_SIZE),  2097152 },
+    { 0x46,  4, 64, M(_SC_LEVEL3_CACHE_SIZE),  4194304 },
+    { 0x47,  8, 64, M(_SC_LEVEL3_CACHE_SIZE),  8388608 },
+    { 0x48, 12, 64, M(_SC_LEVEL2_CACHE_SIZE),  3145728 },
+    { 0x49, 16, 64, M(_SC_LEVEL2_CACHE_SIZE),  4194304 },
+    { 0x4a, 12, 64, M(_SC_LEVEL3_CACHE_SIZE),  6291456 },
+    { 0x4b, 16, 64, M(_SC_LEVEL3_CACHE_SIZE),  8388608 },
+    { 0x4c, 12, 64, M(_SC_LEVEL3_CACHE_SIZE), 12582912 },
+    { 0x4d, 16, 64, M(_SC_LEVEL3_CACHE_SIZE), 16777216 },
+    { 0x4e, 24, 64, M(_SC_LEVEL2_CACHE_SIZE),  6291456 },
+    { 0x60,  8, 64, M(_SC_LEVEL1_DCACHE_SIZE),   16384 },
+    { 0x66,  4, 64, M(_SC_LEVEL1_DCACHE_SIZE),    8192 },
+    { 0x67,  4, 64, M(_SC_LEVEL1_DCACHE_SIZE),   16384 },
+    { 0x68,  4, 64, M(_SC_LEVEL1_DCACHE_SIZE),   32768 },
+    { 0x78,  8, 64, M(_SC_LEVEL2_CACHE_SIZE),  1048576 },
+    { 0x79,  8, 64, M(_SC_LEVEL2_CACHE_SIZE),   131072 },
+    { 0x7a,  8, 64, M(_SC_LEVEL2_CACHE_SIZE),   262144 },
+    { 0x7b,  8, 64, M(_SC_LEVEL2_CACHE_SIZE),   524288 },
+    { 0x7c,  8, 64, M(_SC_LEVEL2_CACHE_SIZE),  1048576 },
+    { 0x7d,  8, 64, M(_SC_LEVEL2_CACHE_SIZE),  2097152 },
+    { 0x7f,  2, 64, M(_SC_LEVEL2_CACHE_SIZE),   524288 },
+    { 0x82,  8, 32, M(_SC_LEVEL2_CACHE_SIZE),   262144 },
+    { 0x83,  8, 32, M(_SC_LEVEL2_CACHE_SIZE),   524288 },
+    { 0x84,  8, 32, M(_SC_LEVEL2_CACHE_SIZE),  1048576 },
+    { 0x85,  8, 32, M(_SC_LEVEL2_CACHE_SIZE),  2097152 },
+    { 0x86,  4, 64, M(_SC_LEVEL2_CACHE_SIZE),   524288 },
+    { 0x87,  8, 64, M(_SC_LEVEL2_CACHE_SIZE),  1048576 },
+    { 0xd0,  4, 64, M(_SC_LEVEL3_CACHE_SIZE),   524288 },
+    { 0xd1,  4, 64, M(_SC_LEVEL3_CACHE_SIZE),  1048576 },
+    { 0xd2,  4, 64, M(_SC_LEVEL3_CACHE_SIZE),  2097152 },
+    { 0xd6,  8, 64, M(_SC_LEVEL3_CACHE_SIZE),  1048576 },
+    { 0xd7,  8, 64, M(_SC_LEVEL3_CACHE_SIZE),  2097152 },
+    { 0xd8,  8, 64, M(_SC_LEVEL3_CACHE_SIZE),  4194304 },
+    { 0xdc, 12, 64, M(_SC_LEVEL3_CACHE_SIZE),  2097152 },
+    { 0xdd, 12, 64, M(_SC_LEVEL3_CACHE_SIZE),  4194304 },
+    { 0xde, 12, 64, M(_SC_LEVEL3_CACHE_SIZE),  8388608 },
+    { 0xe3, 16, 64, M(_SC_LEVEL3_CACHE_SIZE),  2097152 },
+    { 0xe3, 16, 64, M(_SC_LEVEL3_CACHE_SIZE),  4194304 },
+    { 0xe4, 16, 64, M(_SC_LEVEL3_CACHE_SIZE),  8388608 },
+    { 0xea, 24, 64, M(_SC_LEVEL3_CACHE_SIZE), 12582912 },
+    { 0xeb, 24, 64, M(_SC_LEVEL3_CACHE_SIZE), 18874368 },
+    { 0xec, 24, 64, M(_SC_LEVEL3_CACHE_SIZE), 25165824 },
   };
 
 #define nintel_02_known (sizeof (intel_02_known) / sizeof (intel_02_known [0]))
@@ -125,8 +165,7 @@ intel_check_word (int name, unsigned int value, bool *has_level_2,
 
   /* Fold the name.  The _SC_ constants are always in the order SIZE,
      ASSOC, LINESIZE.  */
-  int folded_name = (_SC_LEVEL1_ICACHE_SIZE
-		     + ((name - _SC_LEVEL1_ICACHE_SIZE) / 3) * 3);
+  int folded_rel_name = (M(name) / 3) * 3;
 
   while (value != 0)
     {
@@ -136,28 +175,33 @@ intel_check_word (int name, unsigned int value, bool *has_level_2,
 	{
 	  *no_level_2_or_3 = true;
 
-	  if (folded_name == _SC_LEVEL3_CACHE_SIZE)
+	  if (folded_rel_name == M(_SC_LEVEL3_CACHE_SIZE))
 	    /* No need to look further.  */
 	    break;
 	}
       else
 	{
-	  if (byte == 0x49 && folded_name == _SC_LEVEL3_CACHE_SIZE)
+	  if (byte == 0x49 && folded_rel_name == M(_SC_LEVEL3_CACHE_SIZE))
 	    {
 	      /* Intel reused this value.  For family 15, model 6 it
 		 specifies the 3rd level cache.  Otherwise the 2nd
 		 level cache.  */
+	      unsigned int family;
+	      unsigned int model;
+#ifdef USE_MULTIARCH
+	      family = __cpu_features.family;
+	      model = __cpu_features.model;
+#else
 	      unsigned int eax;
 	      unsigned int ebx;
 	      unsigned int ecx;
 	      unsigned int edx;
-	      asm volatile ("cpuid"
-			    : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
-			    : "0" (1));
+	      __cpuid (1, eax, ebx, ecx, edx);
 
-	      unsigned int family = ((eax >> 20) & 0xff) + ((eax >> 8) & 0xf);
-	      unsigned int model = ((((eax >>16) & 0xf) << 4)
-				    + ((eax >> 4) & 0xf));
+	      family = ((eax >> 20) & 0xff) + ((eax >> 8) & 0xf);
+	      model = (((eax >>16) & 0xf) << 4) + ((eax >> 4) & 0xf);
+#endif
+
 	      if (family == 15 && model == 6)
 		{
 		  /* The level 3 cache is encoded for this model like
@@ -165,7 +209,7 @@ intel_check_word (int name, unsigned int value, bool *has_level_2,
 		     the caller asked for the level 2 cache.  */
 		  name = (_SC_LEVEL2_CACHE_SIZE
 			  + (name - _SC_LEVEL3_CACHE_SIZE));
-		  folded_name = _SC_LEVEL3_CACHE_SIZE;
+		  folded_rel_name = M(_SC_LEVEL2_CACHE_SIZE);
 		}
 	    }
 
@@ -177,9 +221,9 @@ intel_check_word (int name, unsigned int value, bool *has_level_2,
 			   sizeof (intel_02_known[0]), intel_02_known_compare);
 	  if (found != NULL)
 	    {
-	      if (found->name == folded_name)
+	      if (found->rel_name == folded_rel_name)
 		{
-		  unsigned int offset = name - folded_name;
+		  unsigned int offset = M(name) - folded_rel_name;
 
 		  if (offset == 0)
 		    /* Cache size.  */
@@ -191,7 +235,7 @@ intel_check_word (int name, unsigned int value, bool *has_level_2,
 		  return found->linesize;
 		}
 
-	      if (found->name == _SC_LEVEL2_CACHE_SIZE)
+	      if (found->rel_name == M(_SC_LEVEL2_CACHE_SIZE))
 		*has_level_2 = true;
 	    }
 	}
@@ -224,9 +268,7 @@ handle_intel (int name, unsigned int maxidx)
       unsigned int ebx;
       unsigned int ecx;
       unsigned int edx;
-      asm volatile ("cpuid"
-		    : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
-		    : "0" (2));
+      __cpuid (2, eax, ebx, ecx, edx);
 
       /* The low byte of EAX in the first round contain the number of
 	 rounds we have to make.  At least one, the one we are already
@@ -270,9 +312,7 @@ handle_amd (int name)
   unsigned int ebx;
   unsigned int ecx;
   unsigned int edx;
-  asm volatile ("cpuid"
-		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
-		: "0" (0x80000000));
+  __cpuid (0x80000000, eax, ebx, ecx, edx);
 
   /* No level 4 cache (yet).  */
   if (name > _SC_LEVEL3_CACHE_LINESIZE)
@@ -282,9 +322,7 @@ handle_amd (int name)
   if (eax < fn)
     return 0;
 
-  asm volatile ("cpuid"
-		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
-		: "0" (fn));
+  __cpuid (fn, eax, ebx, ecx, edx);
 
   if (name < _SC_LEVEL1_DCACHE_SIZE)
     {
@@ -389,21 +427,22 @@ long int
 attribute_hidden
 __cache_sysconf (int name)
 {
+#ifdef USE_MULTIARCH
+  if (__cpu_features.kind == arch_kind_unknown)
+    __init_cpu_features ();
+#else
   /* Find out what brand of processor.  */
-  unsigned int eax;
+  unsigned int max_cpuid;
   unsigned int ebx;
   unsigned int ecx;
   unsigned int edx;
-  asm volatile ("cpuid"
-		: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
-		: "0" (0));
+  __cpuid (0, max_cpuid, ebx, ecx, edx);
+#endif
 
-  /* This spells out "GenuineIntel".  */
-  if (ebx == 0x756e6547 && ecx == 0x6c65746e && edx == 0x49656e69)
-    return handle_intel (name, eax);
+  if (is_intel)
+    return handle_intel (name, max_cpuid);
 
-  /* This spells out "AuthenticAMD".  */
-  if (ebx == 0x68747541 && ecx == 0x444d4163 && edx == 0x69746e65)
+  if (is_amd)
     return handle_amd (name);
 
   // XXX Fill in more vendors.
@@ -420,9 +459,13 @@ long int __x86_64_data_cache_size_half attribute_hidden = 32 * 1024 / 2;
    L2 or L3 size.  */
 long int __x86_64_shared_cache_size_half attribute_hidden = 1024 * 1024 / 2;
 long int __x86_64_shared_cache_size attribute_hidden = 1024 * 1024;
+
+#ifndef DISABLE_PREFETCHW
 /* PREFETCHW support flag for use in memory and string routines.  */
 int __x86_64_prefetchw attribute_hidden;
+#endif
 
+#ifndef DISABLE_PREFERRED_MEMORY_INSTRUCTION
 /* Instructions preferred for memory and string routines.
 
   0: Regular instructions
@@ -432,6 +475,7 @@ int __x86_64_prefetchw attribute_hidden;
 
   */
 int __x86_64_preferred_memory_instruction attribute_hidden;
+#endif
 
 
 static void
@@ -443,19 +487,21 @@ init_cacheinfo (void)
   unsigned int ebx;
   unsigned int ecx;
   unsigned int edx;
-  int max_cpuid;
   int max_cpuid_ex;
   long int data = -1;
   long int shared = -1;
   unsigned int level;
   unsigned int threads = 0;
 
-  asm volatile ("cpuid"
-		: "=a" (max_cpuid), "=b" (ebx), "=c" (ecx), "=d" (edx)
-		: "0" (0));
+#ifdef USE_MULTIARCH
+  if (__cpu_features.kind == arch_kind_unknown)
+    __init_cpu_features ();
+#else
+  int max_cpuid;
+  __cpuid (0, max_cpuid, ebx, ecx, edx);
+#endif
 
-  /* This spells out "GenuineIntel".  */
-  if (ebx == 0x756e6547 && ecx == 0x6c65746e && edx == 0x49656e69)
+  if (is_intel)
     {
       data = handle_intel (_SC_LEVEL1_DCACHE_SIZE, max_cpuid);
 
@@ -470,16 +516,25 @@ init_cacheinfo (void)
           shared = handle_intel (_SC_LEVEL2_CACHE_SIZE, max_cpuid);
 	}
 
-      asm volatile ("cpuid"
-		    : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
-		    : "0" (1));
+      unsigned int ebx_1;
 
+#ifdef USE_MULTIARCH
+      eax = __cpu_features.cpuid[COMMON_CPUID_INDEX_1].eax;
+      ebx_1 = __cpu_features.cpuid[COMMON_CPUID_INDEX_1].ebx;
+      ecx = __cpu_features.cpuid[COMMON_CPUID_INDEX_1].ecx;
+      edx = __cpu_features.cpuid[COMMON_CPUID_INDEX_1].edx;
+#else
+      __cpuid (1, eax, ebx_1, ecx, edx);
+#endif
+
+#ifndef DISABLE_PREFERRED_MEMORY_INSTRUCTION
       /* Intel prefers SSSE3 instructions for memory/string routines
 	 if they are avaiable.  */
       if ((ecx & 0x200))
 	__x86_64_preferred_memory_instruction = 3;
       else
 	__x86_64_preferred_memory_instruction = 2;
+#endif
 
       /* Figure out the number of logical threads that share the
 	 highest cache level.  */
@@ -490,9 +545,7 @@ init_cacheinfo (void)
 	  /* Query until desired cache level is enumerated.  */
 	  do
 	    {
-              asm volatile ("cpuid"
-		            : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
-		            : "0" (4), "2" (i++));
+	      __cpuid_count (4, i++, eax, ebx, ecx, edx);
 
 	      /* There seems to be a bug in at least some Pentium Ds
 		 which sometimes fail to iterate all cache parameters.
@@ -503,14 +556,46 @@ init_cacheinfo (void)
 	    }
           while (((eax >> 5) & 0x7) != level);
 
-	  threads = ((eax >> 14) & 0x3ff) + 1;
+	  threads = (eax >> 14) & 0x3ff;
+
+	  /* If max_cpuid >= 11, THREADS is the maximum number of
+	      addressable IDs for logical processors sharing the
+	      cache, instead of the maximum number of threads
+	      sharing the cache.  */
+	  if (threads && max_cpuid >= 11)
+	    {
+	      /* Find the number of logical processors shipped in
+		 one core and apply count mask.  */
+	      i = 0;
+	      while (1)
+		{
+		  __cpuid_count (11, i++, eax, ebx, ecx, edx);
+
+		  int shipped = ebx & 0xff;
+		  int type = ecx & 0xff0;
+		  if (shipped == 0 || type == 0)
+		    break;
+		  else if (type == 0x200)
+		    {
+		      int count_mask;
+
+		      /* Compute count mask.  */
+		      asm ("bsr %1, %0"
+			   : "=r" (count_mask) : "g" (threads));
+		      count_mask = ~(-1 << (count_mask + 1));
+		      threads = (shipped - 1) & count_mask;
+		      break;
+		    }
+		}
+	    }
+	  threads += 1;
 	}
       else
         {
 	intel_bug_no_cache_info:
 	  /* Assume that all logical threads share the highest cache level.  */
 
-	  threads = (ebx >> 16) & 0xff;
+	  threads = (ebx_1 >> 16) & 0xff;
 	}
 
       /* Cap usage of highest cache level to the number of supported
@@ -519,16 +604,14 @@ init_cacheinfo (void)
         shared /= threads;
     }
   /* This spells out "AuthenticAMD".  */
-  else if (ebx == 0x68747541 && ecx == 0x444d4163 && edx == 0x69746e65)
+  else if (is_amd)
     {
       data   = handle_amd (_SC_LEVEL1_DCACHE_SIZE);
       long int core = handle_amd (_SC_LEVEL2_CACHE_SIZE);
       shared = handle_amd (_SC_LEVEL3_CACHE_SIZE);
 
       /* Get maximum extended function. */
-      asm volatile ("cpuid"
-		    : "=a" (max_cpuid_ex), "=b" (ebx), "=c" (ecx), "=d" (edx)
-		    : "0" (0x80000000));
+      __cpuid (0x80000000, max_cpuid_ex, ebx, ecx, edx);
 
       if (shared <= 0)
 	/* No shared L3 cache.  All we have is the L2 cache.  */
@@ -539,10 +622,7 @@ init_cacheinfo (void)
 	  if (max_cpuid_ex >= 0x80000008)
 	    {
 	      /* Get width of APIC ID.  */
-	      asm volatile ("cpuid"
-			    : "=a" (max_cpuid_ex), "=b" (ebx), "=c" (ecx),
-			      "=d" (edx)
-			    : "0" (0x80000008));
+	      __cpuid (0x80000008, max_cpuid_ex, ebx, ecx, edx);
 	      threads = 1 << ((ecx >> 12) & 0x0f);
 	    }
 
@@ -550,10 +630,7 @@ init_cacheinfo (void)
 	    {
 	      /* If APIC ID width is not available, use logical
 		 processor count.  */
-	      asm volatile ("cpuid"
-			    : "=a" (max_cpuid_ex), "=b" (ebx), "=c" (ecx),
-			      "=d" (edx)
-			    : "0" (0x00000001));
+	      __cpuid (0x00000001, max_cpuid_ex, ebx, ecx, edx);
 
 	      if ((edx & (1 << 28)) != 0)
 		threads = (ebx >> 16) & 0xff;
@@ -568,15 +645,15 @@ init_cacheinfo (void)
 	  shared += core;
 	}
 
+#ifndef DISABLE_PREFETCHW
       if (max_cpuid_ex >= 0x80000001)
 	{
-	  asm volatile ("cpuid"
-			: "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx)
-			: "0" (0x80000001));
+	  __cpuid (0x80000001, eax, ebx, ecx, edx);
 	  /*  PREFETCHW     || 3DNow!  */
 	  if ((ecx & 0x100) || (edx & 0x80000000))
 	    __x86_64_prefetchw = -1;
 	}
+#endif
     }
 
   if (data > 0)

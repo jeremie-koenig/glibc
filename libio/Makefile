@@ -58,7 +58,7 @@ tests = tst_swprintf tst_wprintf tst_swscanf tst_wscanf tst_getwc tst_putwc   \
 	tst-memstream1 tst-memstream2 \
 	tst-wmemstream1 tst-wmemstream2 \
 	bug-memstream1 bug-wmemstream1 \
-	tst-setvbuf1 tst-popen1 tst-fgetwc
+	tst-setvbuf1 tst-popen1 tst-fgetwc bug-wsetpos
 test-srcs = test-freopen
 
 all: # Make this the default target; it will be defined in Rules.
@@ -153,6 +153,7 @@ tst-ungetwc2-ENV = LOCPATH=$(common-objpfx)localedata
 bug-ungetwc2-ENV = LOCPATH=$(common-objpfx)localedata
 tst-swscanf-ENV = LOCPATH=$(common-objpfx)localedata
 bug-ftell-ENV = LOCPATH=$(common-objpfx)localedata
+tst-fgetwc-ENV = LOCPATH=$(common-objpfx)localedata
 
 generated = tst-fopenloc.mtrace tst-fopenloc.check
 
