@@ -22,3 +22,4 @@ t/accept4
 t/bits_sched.h
 t/dl-sysdep.c_SHARED
 t/__rtld_lock_recursive_t
+t/____longjmp_chk
