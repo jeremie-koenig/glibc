@@ -13,3 +13,13 @@ Generalized unwind-resume support for GNU.
 	* nptl/sysdeps/pthread/Makefile: Move handling of unwind-resume.c and
 	rt-unwind-resume.c to...
 	* sysdeps/gnu/Makefile: ... here.
+
+---
+
+    /home/tschwinge/tmp/glibc/tschwinge--Roger_Whittaker.build/libc_pic.os: In function `ifree':
+    /media/data/home/tschwinge/tmp/glibc/tschwinge--Roger_Whittaker/misc/../sysdeps/posix/readv.c:32: undefined reference to `_Unwind_Resume'
+    /home/tschwinge/tmp/glibc/tschwinge--Roger_Whittaker.build/libc_pic.os: In function `ifree':
+    /media/data/home/tschwinge/tmp/glibc/tschwinge--Roger_Whittaker/misc/../sysdeps/posix/writev.c:32: undefined reference to `_Unwind_Resume'
+    /home/tschwinge/tmp/glibc/tschwinge--Roger_Whittaker.build/libc_pic.os:(.data.DW.ref.__gcc_personality_v0[DW.ref.__gcc_personality_v0]+0x0): undefined reference to `__gcc_personality_v0'
+    collect2: ld returned 1 exit status
+    make[1]: *** [/home/tschwinge/tmp/glibc/tschwinge--Roger_Whittaker.build/libc.so] Error 1
