@@ -235,8 +235,9 @@ top_check()
       return -1;
     }
   /* Call the `morecore' hook if necessary.  */
-  if (__after_morecore_hook)
-    (*__after_morecore_hook) ();
+  void (*hook) (void) = force_reg (__after_morecore_hook);
+  if (hook)
+    (*hook) ();
   main_arena.system_mem = (new_brk - mp_.sbrk_base) + sbrk_size;
 
   top(&main_arena) = (mchunkptr)(brk + front_misalign);
@@ -275,17 +276,13 @@ free_check(mem, caller) Void_t* mem; const Void_t *caller;
   mchunkptr p;
 
   if(!mem) return;
-  (void)mutex_lock(&main_arena.mutex);
   p = mem2chunk_check(mem, NULL);
   if(!p) {
-    (void)mutex_unlock(&main_arena.mutex);
-
     malloc_printerr(check_action, "free(): invalid pointer", mem);
     return;
   }
 #if HAVE_MMAP
   if (chunk_is_mmapped(p)) {
-    (void)mutex_unlock(&main_arena.mutex);
     munmap_chunk(p);
     return;
   }
@@ -293,8 +290,13 @@ free_check(mem, caller) Void_t* mem; const Void_t *caller;
 #if 0 /* Erase freed memory. */
   memset(mem, 0, chunksize(p) - (SIZE_SZ+1));
 #endif
+#ifdef ATOMIC_FASTBINS
+  _int_free(&main_arena, p, 0);
+#else
+  (void)mutex_lock(&main_arena.mutex);
   _int_free(&main_arena, p);
   (void)mutex_unlock(&main_arena.mutex);
+#endif
 }
 
 static Void_t*
@@ -357,7 +359,7 @@ realloc_check(oldmem, bytes, caller)
     if (top_check() >= 0) {
       INTERNAL_SIZE_T nb;
       checked_request2size(bytes + 1, nb);
-      newmem = _int_realloc(&main_arena, oldp, nb);
+      newmem = _int_realloc(&main_arena, oldp, oldsize, nb);
     }
 #if 0 /* Erase freed memory. */
     if(newmem)
@@ -472,7 +474,11 @@ free_starter(mem, caller) Void_t* mem; const Void_t *caller;
     return;
   }
 #endif
+#ifdef ATOMIC_FASTBINS
+  _int_free(&main_arena, p, 1);
+#else
   _int_free(&main_arena, p);
+#endif
 }
 
 # endif	/* !defiend NO_STARTER */
@@ -496,7 +502,7 @@ free_starter(mem, caller) Void_t* mem; const Void_t *caller;
    then the hooks are reset to 0.  */
 
 #define MALLOC_STATE_MAGIC   0x444c4541l
-#define MALLOC_STATE_VERSION (0*0x100l + 3l) /* major*0x100 + minor */
+#define MALLOC_STATE_VERSION (0*0x100l + 4l) /* major*0x100 + minor */
 
 struct malloc_save_state {
   long          magic;
@@ -516,6 +522,10 @@ struct malloc_save_state {
   unsigned long mmapped_mem;
   unsigned long max_mmapped_mem;
   int           using_malloc_checking;
+  unsigned long max_fast;
+  unsigned long arena_test;
+  unsigned long arena_max;
+  unsigned long narenas;
 };
 
 Void_t*
@@ -563,6 +573,12 @@ public_gET_STATe(void)
   ms->mmapped_mem = mp_.mmapped_mem;
   ms->max_mmapped_mem = mp_.max_mmapped_mem;
   ms->using_malloc_checking = using_malloc_checking;
+  ms->max_fast = get_max_fast();
+#ifdef PER_THREAD
+  ms->arena_test = mp_.arena_test;
+  ms->arena_max = mp_.arena_max;
+  ms->narenas = narenas;
+#endif
   (void)mutex_unlock(&main_arena.mutex);
   return (Void_t*)ms;
 }
@@ -582,9 +598,12 @@ public_sET_STATe(Void_t* msptr)
   (void)mutex_lock(&main_arena.mutex);
   /* There are no fastchunks.  */
   clear_fastchunks(&main_arena);
-  set_max_fast(DEFAULT_MXFAST);
+  if (ms->version >= 4)
+    set_max_fast(ms->max_fast);
+  else
+    set_max_fast(64);	/* 64 used to be the value we always used.  */
   for (i=0; i<NFASTBINS; ++i)
-    main_arena.fastbins[i] = 0;
+    fastbin (&main_arena, i) = 0;
   for (i=0; i<BINMAPSIZE; ++i)
     main_arena.binmap[i] = 0;
   top(&main_arena) = ms->av[2];
@@ -651,12 +670,19 @@ public_sET_STATe(Void_t* msptr)
         !disallow_malloc_check)
       __malloc_check_init ();
     else if (!ms->using_malloc_checking && using_malloc_checking) {
-      __malloc_hook = 0;
-      __free_hook = 0;
-      __realloc_hook = 0;
-      __memalign_hook = 0;
+      __malloc_hook = NULL;
+      __free_hook = NULL;
+      __realloc_hook = NULL;
+      __memalign_hook = NULL;
       using_malloc_checking = 0;
     }
+  }
+  if (ms->version >= 4) {
+#ifdef PER_THREAD
+    mp_.arena_test = ms->arena_test;
+    mp_.arena_max = ms->arena_max;
+    narenas = ms->narenas;
+#endif
   }
   check_malloc_state(&main_arena);
 

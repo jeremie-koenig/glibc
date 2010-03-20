@@ -1,4 +1,4 @@
-f1092afe15ad779d61a1420c05854a9122d3ce5e
+master
 t/init-first.c
 t/kernel-features.h_includes
 t/libc_once
@@ -21,3 +21,6 @@ t/dup3
 t/accept4
 t/bits_sched.h
 t/dl-sysdep.c_SHARED
+t/__rtld_lock_recursive_t
+t/____longjmp_chk
+t/unwind-resume.c
