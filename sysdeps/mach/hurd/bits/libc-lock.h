@@ -1,8 +1,5 @@
 /* libc-internal interface for mutex locks.  Hurd version using Mach cthreads.
-
-   Copyright (C) 1996, 1997, 1998, 2000, 2001, 2002, 2003, 2009 Free Software
-   Foundation, Inc.
-
+   Copyright (C) 1996,97,98,2000,01, 2002, 2003 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -91,9 +88,6 @@ typedef struct __libc_lock_recursive_opaque__ __libc_lock_recursive_t;
   _LIBC_LOCK_RECURSIVE_INITIALIZER
 #define __rtld_lock_define_initialized_recursive(CLASS,NAME) \
   __libc_lock_define_initialized_recursive (CLASS, NAME)
-
-#define __rtld_lock_initialize(NAME) \
-  (void) ((NAME) = (__rtld_lock_recursive_t) _RTLD_LOCK_RECURSIVE_INITIALIZER)
 
 #define __libc_lock_init_recursive(NAME) \
   ({ __libc_lock_recursive_t *const __lock = &(NAME); \
