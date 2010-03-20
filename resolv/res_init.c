@@ -183,7 +183,7 @@ __res_vinit(res_state statp, int preinit) {
 #endif
 	statp->nsaddr.sin_family = AF_INET;
 	statp->nsaddr.sin_port = htons(NAMESERVER_PORT);
-	statp->nscount = 1;
+	statp->nscount = 0;
 	statp->ndots = 1;
 	statp->pfcode = 0;
 	statp->_vcsock = -1;
@@ -314,9 +314,9 @@ __res_vinit(res_state statp, int preinit) {
 			cp++;
 		    if ((*cp != '\0') && (*cp != '\n')
 			&& __inet_aton(cp, &a)) {
-			statp->nsaddr_list[nserv].sin_addr = a;
-			statp->nsaddr_list[nserv].sin_family = AF_INET;
-			statp->nsaddr_list[nserv].sin_port =
+			statp->nsaddr_list[nservall].sin_addr = a;
+			statp->nsaddr_list[nservall].sin_family = AF_INET;
+			statp->nsaddr_list[nservall].sin_port =
 				htons(NAMESERVER_PORT);
 			nserv++;
 #ifdef _LIBC
@@ -420,8 +420,7 @@ __res_vinit(res_state statp, int preinit) {
 		    continue;
 		}
 	    }
-	    if (nserv > 1)
-		statp->nscount = nserv;
+	    statp->nscount = nservall;
 #ifdef _LIBC
 	    if (nservall - nserv > 0) {
 		statp->_u._ext.nscount6 = nservall - nserv;
@@ -541,6 +540,12 @@ res_setoptions(res_state statp, const char *options, const char *source) {
 			statp->options |= RES_NOCHECKNAME;
                 } else if (!strncmp(cp, "edns0", sizeof("edns0") - 1)) {
 			statp->options |= RES_USE_EDNS0;
+                } else if (!strncmp(cp, "single-request-reopen",
+				    sizeof("single-request-reopen") - 1)) {
+			statp->options |= RES_SNGLKUPREOP;
+                } else if (!strncmp(cp, "single-request",
+				    sizeof("single-request") - 1)) {
+			statp->options |= RES_SNGLKUP;
 		} else {
 			/* XXX - print a warning here? */
 		}

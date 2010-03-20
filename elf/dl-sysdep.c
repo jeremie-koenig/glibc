@@ -1,5 +1,6 @@
 /* Operating system support for run-time dynamic linker.  Generic Unix version.
-   Copyright (C) 1995-1998, 2000-2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 1995-1998,2000-2008,2009,2010
+	Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -62,6 +63,7 @@ int __libc_multiple_libcs = 0;	/* Defining this here avoids the inclusion
 void *__libc_stack_end attribute_relro = NULL;
 rtld_hidden_data_def(__libc_stack_end)
 static ElfW(auxv_t) *_dl_auxv attribute_relro;
+void *_dl_random attribute_relro = NULL;
 
 #ifndef DL_FIND_ARG_COMPONENTS
 # define DL_FIND_ARG_COMPONENTS(cookie, argc, argv, envp, auxp)	\
@@ -83,7 +85,7 @@ static ElfW(auxv_t) *_dl_auxv attribute_relro;
 ElfW(Addr)
 _dl_sysdep_start (void **start_argptr,
 		  void (*dl_main) (const ElfW(Phdr) *phdr, ElfW(Word) phnum,
-				   ElfW(Addr) *user_entry))
+				   ElfW(Addr) *user_entry, ElfW(auxv_t) *auxv))
 {
   const ElfW(Phdr) *phdr = NULL;
   ElfW(Word) phnum = 0;
@@ -173,6 +175,9 @@ _dl_sysdep_start (void **start_argptr,
 	GLRO(dl_sysinfo_dso) = (void *) av->a_un.a_val;
 	break;
 #endif
+      case AT_RANDOM:
+	_dl_random = (void *) av->a_un.a_val;
+	break;
 #ifdef DL_PLATFORM_AUXV
       DL_PLATFORM_AUXV
 #endif
@@ -236,7 +241,7 @@ _dl_sysdep_start (void **start_argptr,
   if (__builtin_expect (INTUSE(__libc_enable_secure), 0))
     __libc_check_standard_fds ();
 
-  (*dl_main) (phdr, phnum, &user_entry);
+  (*dl_main) (phdr, phnum, &user_entry, _dl_auxv);
   return user_entry;
 }
 
@@ -265,35 +270,37 @@ _dl_show_auxv (void)
     {
       static const struct
       {
-	const char label[20];
-	enum { unknown = 0, dec, hex, str, ignore } form;
+	const char label[17];
+	enum { unknown = 0, dec, hex, str, ignore } form : 8;
       } auxvars[] =
 	{
-	  [AT_EXECFD - 2] =		{ "AT_EXECFD:       ", dec },
-	  [AT_EXECFN - 2] =		{ "AT_EXECFN:       ", str },
-	  [AT_PHDR - 2] =		{ "AT_PHDR:         0x", hex },
-	  [AT_PHENT - 2] =		{ "AT_PHENT:        ", dec },
-	  [AT_PHNUM - 2] =		{ "AT_PHNUM:        ", dec },
-	  [AT_PAGESZ - 2] =		{ "AT_PAGESZ:       ", dec },
-	  [AT_BASE - 2] =		{ "AT_BASE:         0x", hex },
-	  [AT_FLAGS - 2] =		{ "AT_FLAGS:        0x", hex },
-	  [AT_ENTRY - 2] =		{ "AT_ENTRY:        0x", hex },
-	  [AT_NOTELF - 2] =		{ "AT_NOTELF:       ", hex },
-	  [AT_UID - 2] =		{ "AT_UID:          ", dec },
-	  [AT_EUID - 2] =		{ "AT_EUID:         ", dec },
-	  [AT_GID - 2] =		{ "AT_GID:          ", dec },
-	  [AT_EGID - 2] =		{ "AT_EGID:         ", dec },
-	  [AT_PLATFORM - 2] =		{ "AT_PLATFORM:     ", str },
-	  [AT_HWCAP - 2] =		{ "AT_HWCAP:        ", hex },
-	  [AT_CLKTCK - 2] =		{ "AT_CLKTCK:       ", dec },
-	  [AT_FPUCW - 2] =		{ "AT_FPUCW:        ", hex },
-	  [AT_DCACHEBSIZE - 2] =	{ "AT_DCACHEBSIZE:  0x", hex },
-	  [AT_ICACHEBSIZE - 2] =	{ "AT_ICACHEBSIZE:  0x", hex },
-	  [AT_UCACHEBSIZE - 2] =	{ "AT_UCACHEBSIZE:  0x", hex },
-	  [AT_IGNOREPPC - 2] =		{ "AT_IGNOREPPC", ignore },
-	  [AT_SECURE - 2] =		{ "AT_SECURE:       ", dec },
-	  [AT_SYSINFO - 2] =		{ "AT_SYSINFO:      0x", hex },
-	  [AT_SYSINFO_EHDR - 2] =	{ "AT_SYSINFO_EHDR: 0x", hex },
+	  [AT_EXECFD - 2] =		{ "EXECFD:       ", dec },
+	  [AT_EXECFN - 2] =		{ "EXECFN:       ", str },
+	  [AT_PHDR - 2] =		{ "PHDR:         0x", hex },
+	  [AT_PHENT - 2] =		{ "PHENT:        ", dec },
+	  [AT_PHNUM - 2] =		{ "PHNUM:        ", dec },
+	  [AT_PAGESZ - 2] =		{ "PAGESZ:       ", dec },
+	  [AT_BASE - 2] =		{ "BASE:         0x", hex },
+	  [AT_FLAGS - 2] =		{ "FLAGS:        0x", hex },
+	  [AT_ENTRY - 2] =		{ "ENTRY:        0x", hex },
+	  [AT_NOTELF - 2] =		{ "NOTELF:       ", hex },
+	  [AT_UID - 2] =		{ "UID:          ", dec },
+	  [AT_EUID - 2] =		{ "EUID:         ", dec },
+	  [AT_GID - 2] =		{ "GID:          ", dec },
+	  [AT_EGID - 2] =		{ "EGID:         ", dec },
+	  [AT_PLATFORM - 2] =		{ "PLATFORM:     ", str },
+	  [AT_HWCAP - 2] =		{ "HWCAP:        ", hex },
+	  [AT_CLKTCK - 2] =		{ "CLKTCK:       ", dec },
+	  [AT_FPUCW - 2] =		{ "FPUCW:        ", hex },
+	  [AT_DCACHEBSIZE - 2] =	{ "DCACHEBSIZE:  0x", hex },
+	  [AT_ICACHEBSIZE - 2] =	{ "ICACHEBSIZE:  0x", hex },
+	  [AT_UCACHEBSIZE - 2] =	{ "UCACHEBSIZE:  0x", hex },
+	  [AT_IGNOREPPC - 2] =		{ "IGNOREPPC", ignore },
+	  [AT_SECURE - 2] =		{ "SECURE:       ", dec },
+	  [AT_BASE_PLATFORM - 2] =	{ "BASE_PLATFORM:", str },
+	  [AT_SYSINFO - 2] =		{ "SYSINFO:      0x", hex },
+	  [AT_SYSINFO_EHDR - 2] =	{ "SYSINFO_EHDR: 0x", hex },
+	  [AT_RANDOM - 2] =		{ "RANDOM:       0x", hex },
 	};
       unsigned int idx = (unsigned int) (av->a_type - 2);
 
@@ -322,14 +329,14 @@ _dl_show_auxv (void)
 	    val = _itoa ((unsigned long int) av->a_un.a_val,
 			 buf + sizeof buf - 1, 16, 0);
 
-	  _dl_printf ("%s%s\n", auxvars[idx].label, val);
+	  _dl_printf ("AT_%s%s\n", auxvars[idx].label, val);
 
 	  continue;
 	}
 
       /* Unknown value: print a generic line.  */
       char buf2[17];
-      buf[sizeof (buf2) - 1] = '\0';
+      buf2[sizeof (buf2) - 1] = '\0';
       const char *val2 = _itoa ((unsigned long int) av->a_un.a_val,
 				buf2 + sizeof buf2 - 1, 16, 0);
       const char *val =  _itoa ((unsigned long int) av->a_type,
@@ -384,7 +391,7 @@ _dl_important_hwcaps (const char *platform, size_t platform_len, size_t *sz,
 	    while ((ElfW(Addr)) (note + 1) - start < phdr[i].p_memsz)
 	      {
 #define ROUND(len) (((len) + sizeof (ElfW(Word)) - 1) & -sizeof (ElfW(Word)))
-		if (note->type == 2
+		if (note->type == NT_GNU_HWCAP
 		    && note->vendorlen == sizeof "GNU"
 		    && !memcmp ((note + 1), "GNU", sizeof "GNU")
 		    && note->datalen > 2 * sizeof (ElfW(Word)) + 2)
@@ -504,9 +511,9 @@ _dl_important_hwcaps (const char *platform, size_t platform_len, size_t *sz,
   /* Fill in the information.  This follows the following scheme
      (indeces from TEMP for four strings):
 	entry #0: 0, 1, 2, 3	binary: 1111
-	      #1: 0, 1, 3	        1101
-	      #2: 0, 2, 3	        1011
-	      #3: 0, 3		        1001
+	      #1: 0, 1, 3		1101
+	      #2: 0, 2, 3		1011
+	      #3: 0, 3			1001
      This allows the representation of all possible combinations of
      capability names in the string.  First generate the strings.  */
   result[1].str = result[0].str = cp = (char *) (result + *sz);

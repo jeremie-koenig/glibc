@@ -1,4 +1,4 @@
-# Copyright (C) 1991-2002,2003,2004,2005,2006,2008
+# Copyright (C) 1991-2002,2003,2004,2005,2006,2008,2009
 #	Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
@@ -44,7 +44,7 @@ endif
 define autoconf-it
 @-rm -f $@.new
 $(AUTOCONF) $(ACFLAGS) $< > $@.new
-chmod a-w,a+x $@.new
+chmod a-w$(patsubst %,$(comma)a+x,$(filter .,$(@D))) $@.new
 mv -f $@.new $@
 $(autoconf-it-cvs)
 endef
@@ -271,7 +271,7 @@ installed-headers = argp/argp.h assert/assert.h catgets/nl_types.h \
 		    crypt/crypt.h ctype/ctype.h debug/execinfo.h \
 		    dirent/dirent.h dlfcn/dlfcn.h elf/elf.h elf/link.h \
 		    gmon/sys/gmon.h gmon/sys/gmon_out.h gmon/sys/profil.h \
-		    grp/grp.h iconv/iconv.h iconv/gconv.h \
+		    grp/grp.h gshadow/gshadow.h iconv/iconv.h iconv/gconv.h \
 		    $(wildcard inet/netinet/*.h) \
 		    $(wildcard inet/arpa/*.h inet/protocols/*.h) \
 		    inet/aliases.h inet/ifaddrs.h inet/netinet/ip6.h \
@@ -341,66 +341,44 @@ endif
 
 .PHONY: TAGS
 TAGS:
-	scripts/list-sources.sh | sed -n '/Makefile/p;\
+	scripts/list-sources.sh | sed -n -e '/Makefile/p' \
 	  $(foreach S,[chsSyl] cxx sh bash pl,\
-		    $(subst .,\.,/.$S\(.in\)*$$/p;))' \
+		    $(subst .,\.,-e '/.$S\(.in\)*$$/p')) \
 	| $(ETAGS) -o $@ -
 
 # Make the distribution tarfile.
-.PHONY: dist tag-for-dist
+.PHONY: dist dist-prepare
 
 generated := $(generated) stubs.h
 
-README: README.template version.h
-	-rm -f $@
-	sed -e 's/RELEASE/$(release)/' -e 's/VERSION/$(version)/' < $< > $@
-# Make it unwritable so I won't change it by mistake.
-	chmod 444 $@
-ifeq ($(with-cvs),yes)
-	test ! -d CVS || cvs $(CVSOPTS) commit -m'Remade for $(release)-$(version)' $@
-endif
+files-for-dist := README FAQ INSTALL NOTES configure ChangeLog NEWS
 
-files-for-dist := README FAQ INSTALL NOTES configure
+# Regenerate stuff, then error if these things are not committed yet.
+dist-prepare: $(files-for-dist)
+	conf=`find sysdeps $(addsuffix /sysdeps,$(sysdeps-add-ons)) \
+		   -name configure`; \
+	$(MAKE) $$conf && \
+	git diff --stat HEAD -- $^ $$conf \
+	| $(AWK) '{ print; rc=1 } END { exit rc }'
 
-tag-of-stem = glibc-$(subst .,_,$*)
-dist-selector = -r $(tag-of-stem)
-
-# Add-ons in the main repository but distributed in their own tar files.
-dist-separate = libidn
-
-glibc-%.tar $(dist-separate:%=glibc-%-%.tar): $(files-for-dist) \
-					      $(foreach D,$(dist-separate),\
-							$D/configure)
-	@rm -fr glibc-$*
-	$(MAKE) -q `find sysdeps $(addsuffix /sysdeps,$(sysdeps-add-ons)) \
-			 -name configure`
-	cvs $(CVSOPTS) -Q export -d glibc-$* $(dist-selector) libc
-# Touch all the configure scripts going into the tarball since cvs export
-# might have delivered configure.in newer than configure.
-	find glibc-$* -name configure -print | xargs touch
-	$(dist-do-separate-dirs)
-	tar cf glibc-$*.tar glibc-$*
-	rm -fr glibc-$*
-define dist-do-separate-dirs
-$(foreach dir,$(dist-separate),
-	@rm -fr glibc-$(dir)-$*
-	mv glibc-$*/$(dir) glibc-$(dir)-$*
-	tar cf glibc-$(dir)-$*.tar glibc-$(dir)-$*
-	rm -fr glibc-$(dir)-$*
-)
-endef
+%.tar: FORCE
+	git archive --prefix=$*/ $* > $@.new
+	mv -f $@.new $@
 
 # Do `make dist dist-version=X.Y.Z' to make tar files of an older version.
-dist-version = $(version)
 
-dist: $(foreach Z,.bz2 .gz,glibc-$(dist-version).tar$Z \
-		           $(foreach D,$(dist-separate),\
-				     glibc-$D-$(dist-version).tar$Z))
+ifneq (,$(strip $(dist-version)))
+dist: $(foreach Z,.bz2 .gz .xz,$(dist-version).tar$Z)
 	md5sum $^
-
-tag-for-dist: tag-$(dist-version)
-tag-%: $(files-for-dist)
-	cvs $(CVSOPTS) -Q tag -c $(tag-of-stem)
+else
+dist: dist-prepare
+	@if v=`git describe`; then \
+	  echo Distribution version $$v; \
+	  $(MAKE) dist dist-version=$$v; \
+	else \
+	  false; \
+	fi
+endif
 
 define format-me
 @rm -f $@
