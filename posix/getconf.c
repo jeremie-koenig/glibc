@@ -355,6 +355,14 @@ static const struct conf vars[] =
 #ifdef _SC_THREAD_PRIO_PROTECT
     { "_POSIX_THREAD_PRIO_PROTECT", _SC_THREAD_PRIO_PROTECT, SYSCONF },
 #endif
+#ifdef _SC_THREAD_ROBUST_PRIO_INHERIT
+    { "_POSIX_THREAD_ROBUST_PRIO_INHERIT", _SC_THREAD_ROBUST_PRIO_INHERIT,
+      SYSCONF },
+#endif
+#ifdef _SC_THREAD_ROBUST_PRIO_PROTECT
+    { "_POSIX_THREAD_ROBUST_PRIO_PROTECT", _SC_THREAD_ROBUST_PRIO_PROTECT,
+      SYSCONF },
+#endif
 #ifdef _SC_THREAD_PROCESS_SHARED
     { "_POSIX_THREAD_PROCESS_SHARED", _SC_THREAD_PROCESS_SHARED, SYSCONF },
 #endif
@@ -1110,8 +1118,8 @@ Usage: getconf [-v SPEC] VAR\n\
 Get the configuration value for variable VAR, or for variable PATH_VAR\n\
 for path PATH.  If SPEC is given, give values for compilation\n\
 environment SPEC.\n\n"));
-      printf (gettext ("For bug reporting instructions, please see:\n\
-<http://www.gnu.org/software/libc/bugs.html>.\n"));
+      fputs (gettext ("For bug reporting instructions, please see:\n\
+<http://www.gnu.org/software/libc/bugs.html>.\n"), stdout);
       return 0;
     }
 
