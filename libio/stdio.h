@@ -1,5 +1,5 @@
 /* Define ISO C stdio on top of C++ iostreams.
-   Copyright (C) 1991, 1994-2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 1991, 1994-2008, 2009, 2010 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -74,7 +74,7 @@ typedef struct _IO_FILE __FILE;
 
 #include <libio.h>
 
-#ifdef __USE_XOPEN
+#if defined __USE_XOPEN || defined __USE_XOPEN2K8
 # ifdef __GNUC__
 #  ifndef _VA_LIST_DEFINED
 typedef _G_va_list va_list;
@@ -82,6 +82,26 @@ typedef _G_va_list va_list;
 #  endif
 # else
 #  include <stdarg.h>
+# endif
+#endif
+
+#ifdef __USE_XOPEN2K8
+# ifndef __off_t_defined
+# ifndef __USE_FILE_OFFSET64
+typedef __off_t off_t;
+# else
+typedef __off64_t off_t;
+# endif
+# define __off_t_defined
+# endif
+# if defined __USE_LARGEFILE64 && !defined __off64_t_defined
+typedef __off64_t off64_t;
+# define __off64_t_defined
+# endif
+
+# ifndef __ssize_t_defined
+typedef __ssize_t ssize_t;
+# define __ssize_t_defined
 # endif
 #endif
 
@@ -289,7 +309,9 @@ extern FILE *fdopen (int __fd, __const char *__modes) __THROW __wur;
 extern FILE *fopencookie (void *__restrict __magic_cookie,
 			  __const char *__restrict __modes,
 			  _IO_cookie_io_functions_t __io_funcs) __THROW __wur;
+#endif
 
+#ifdef __USE_XOPEN2K8
 /* Create a new stream that refers to a memory buffer.  */
 extern FILE *fmemopen (void *__s, size_t __len, __const char *__modes)
   __THROW __wur;
@@ -380,7 +402,9 @@ extern int __asprintf (char **__restrict __ptr,
 extern int asprintf (char **__restrict __ptr,
 		     __const char *__restrict __fmt, ...)
      __THROW __attribute__ ((__format__ (__printf__, 2, 3))) __wur;
+#endif
 
+#ifdef __USE_XOPEN2K8
 /* Write formatted output to a file descriptor.
 
    These functions are not part of POSIX and therefore no official
@@ -620,7 +644,7 @@ extern char *fgets_unlocked (char *__restrict __s, int __n,
 #endif
 
 
-#ifdef	__USE_GNU
+#ifdef	__USE_XOPEN2K8
 /* Read up to (and including) a DELIMITER from STREAM into *LINEPTR
    (and null-terminate it). *LINEPTR is a pointer returned from malloc (or
    NULL), pointing to *N characters of space.  It is realloc'd as
