@@ -11,6 +11,10 @@ ifeq ($(subdir),malloc)
 CFLAGS-malloc.c += -DMORECORE_CLEARS=2
 endif
 
+ifeq ($(subdir),socket)
+sysdep_routines += internal_accept4
+endif
+
 ifeq ($(subdir),misc)
 sysdep_routines += sysctl clone llseek umount umount2 readahead \
 		   setfsuid setfsgid makedev epoll_pwait signalfd \
@@ -80,8 +84,8 @@ endif
 $(inst_includedir)/bits/syscall.h: $(objpfx)syscall-list.h $(+force)
 	$(make-target-directory)
 	if test -r $@ && cmp -s $< $@; \
-        then echo 'bits/syscall.h unchanged'; \
-        else $(INSTALL_DATA) $< $@; fi
+	then echo 'bits/syscall.h unchanged'; \
+	else $(INSTALL_DATA) $< $@; fi
 
 ifndef no_deps
 # Get the generated list of dependencies (probably /usr/include/asm/unistd.h).
@@ -93,7 +97,7 @@ endif
 ifeq ($(subdir),time)
 sysdep_headers += sys/timex.h
 
-sysdep_routines += ntp_gettime
+sysdep_routines += ntp_gettime ntp_gettimex
 endif
 
 ifeq ($(subdir),socket)
@@ -139,7 +143,7 @@ endif
 
 ifeq ($(subdir),io)
 sysdep_routines += xstatconv internal_statvfs internal_statvfs64 \
-		   sync_file_range open_2 open64_2
+		   sync_file_range open_2 open64_2 fallocate fallocate64
 endif
 
 ifeq ($(subdir),elf)

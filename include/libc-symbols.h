@@ -1,7 +1,6 @@
 /* Support macros for making weak and strong aliases for symbols,
    and for using symbol sets and linker warnings with GNU ld.
-   Copyright (C) 1995-1998,2000-2003,2004,2005,2006
-	Free Software Foundation, Inc.
+   Copyright (C) 1995-1998,2000-2006,2008,2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -834,5 +833,44 @@ for linking")
 # define compat_text_section .section ".text.compat", "ax";
 # define compat_data_section .section ".data.compat", "aw";
 #endif
+
+/* Marker used for indirection function symbols.  */
+#define libc_ifunc(name, expr)						\
+  extern void *name##_ifunc (void) __asm__ (#name);			\
+  void *name##_ifunc (void)						\
+  {									\
+    INIT_ARCH ();							\
+    __typeof (name) *res = expr;					\
+    return res;								\
+  }									\
+  __asm__ (".type " #name ", %gnu_indirect_function");
+
+/* The body of the function is supposed to use __get_cpu_features
+   which will, if necessary, initialize the data first.  */
+#define libm_ifunc(name, expr)						\
+  extern void *name##_ifunc (void) __asm__ (#name);			\
+  void *name##_ifunc (void)						\
+  {									\
+    __typeof (name) *res = expr;					\
+    return res;								\
+  }									\
+  __asm__ (".type " #name ", %gnu_indirect_function");
+
+#ifdef HAVE_ASM_SET_DIRECTIVE
+# define libc_ifunc_hidden_def1(local, name)				\
+    __asm__ (declare_symbol_alias_1_stringify (ASM_GLOBAL_DIRECTIVE)	\
+	     " " #local "\n\t"						\
+	     ".hidden " #local "\n\t"					\
+	     ".set " #local ", " #name);
+#else
+# define libc_ifunc_hidden_def1(local, name)				\
+    __asm__ (declare_symbol_alias_1_stringify (ASM_GLOBAL_DIRECTIVE)	\
+	     " " #local "\n\t"						\
+	     ".hidden " #local "\n\t"					\
+	     #local " = " #name);
+#endif
+
+#define libc_ifunc_hidden_def(name) \
+  libc_ifunc_hidden_def1 (__GI_##name, name)
 
 #endif /* libc-symbols.h */

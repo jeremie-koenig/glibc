@@ -1,4 +1,4 @@
-# Copyright (C) 1991-2006, 2007, 2008 Free Software Foundation, Inc.
+# Copyright (C) 1991-2006, 2007, 2008, 2009 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -27,6 +27,7 @@ routines	:=							      \
 	ctermid cuserid							      \
 	_itoa _itowa itoa-digits itoa-udigits itowa-digits		      \
 	vfprintf vprintf printf_fp reg-printf printf-prs printf_fphex	      \
+	reg-modifier reg-type						      \
 	printf_size fprintf printf snprintf sprintf asprintf dprintf	      \
 	vfwprintf vfscanf vfwscanf					      \
 	fscanf scanf sscanf						      \
@@ -36,7 +37,8 @@ routines	:=							      \
 	remove rename renameat						      \
 	flockfile ftrylockfile funlockfile				      \
 	isoc99_scanf isoc99_vscanf isoc99_fscanf isoc99_vfscanf isoc99_sscanf \
-	isoc99_vsscanf
+	isoc99_vsscanf							      \
+	psiginfo
 
 install-others = $(inst_includedir)/bits/stdio_lim.h
 
