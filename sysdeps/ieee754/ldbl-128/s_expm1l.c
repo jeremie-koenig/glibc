@@ -53,6 +53,7 @@
 
 
 
+#include <errno.h>
 #include "math.h"
 #include "math_private.h"
 
@@ -85,7 +86,7 @@ static const long double
 /* ln (2^16384 * (1 - 2^-113)) */
   maxlog = 1.1356523406294143949491931077970764891253E4L,
 /* ln 2^-114 */
-  minarg = -7.9018778583833765273564461846232128760607E1L, big = 2e4932L;
+  minarg = -7.9018778583833765273564461846232128760607E1L, big = 1e4932L;
 
 
 long double
@@ -121,7 +122,10 @@ __expm1l (long double x)
 
   /* Overflow.  */
   if (x > maxlog)
-    return (big * big);
+    {
+      __set_errno (ERANGE);
+      return (big * big);
+    }
 
   /* Minimum value.  */
   if (x < minarg)

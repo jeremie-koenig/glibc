@@ -1,4 +1,4 @@
-/* Copyright (C) 1998-2006, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 1998-2006, 2007, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -24,6 +24,9 @@
 #include <bp-sym.h>
 
 extern void __libc_init_first (int argc, char **argv, char **envp);
+#ifndef SHARED
+extern void __libc_csu_irel (void);
+#endif
 
 extern int __libc_multiple_libcs;
 
@@ -134,13 +137,16 @@ LIBC_START_MAIN (int (*main) (int, char **, char ** MAIN_AUXVEC_DECL),
     }
 # endif
 
+  /* Performe IREL{,A} relocations.  */
+  __libc_csu_irel ();
+
   /* Initialize the thread library at least a bit since the libgcc
      functions are using thread functions if these are available and
      we need to setup errno.  */
   __pthread_initialize_minimal ();
 
   /* Set up the stack checker's canary.  */
-  uintptr_t stack_chk_guard = _dl_setup_stack_chk_guard ();
+  uintptr_t stack_chk_guard = _dl_setup_stack_chk_guard (_dl_random);
 # ifdef THREAD_SET_STACK_GUARD
   THREAD_SET_STACK_GUARD (stack_chk_guard);
 # else
