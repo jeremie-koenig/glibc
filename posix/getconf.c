@@ -1,4 +1,4 @@
-/* Copyright (C) 1991, 92, 1995-2007, 2008 Free Software Foundation, Inc.
+/* Copyright (C) 1991, 92, 1995-2008, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    This program is free software; you can redistribute it and/or modify
@@ -355,6 +355,14 @@ static const struct conf vars[] =
 #ifdef _SC_THREAD_PRIO_PROTECT
     { "_POSIX_THREAD_PRIO_PROTECT", _SC_THREAD_PRIO_PROTECT, SYSCONF },
 #endif
+#ifdef _SC_THREAD_ROBUST_PRIO_INHERIT
+    { "_POSIX_THREAD_ROBUST_PRIO_INHERIT", _SC_THREAD_ROBUST_PRIO_INHERIT,
+      SYSCONF },
+#endif
+#ifdef _SC_THREAD_ROBUST_PRIO_PROTECT
+    { "_POSIX_THREAD_ROBUST_PRIO_PROTECT", _SC_THREAD_ROBUST_PRIO_PROTECT,
+      SYSCONF },
+#endif
 #ifdef _SC_THREAD_PROCESS_SHARED
     { "_POSIX_THREAD_PROCESS_SHARED", _SC_THREAD_PROCESS_SHARED, SYSCONF },
 #endif
@@ -476,6 +484,7 @@ static const struct conf vars[] =
 #endif
 #ifdef _SC_LINE_MAX
     { "_POSIX2_LINE_MAX", _SC_LINE_MAX, SYSCONF },
+    { "POSIX2_LINE_MAX", _SC_LINE_MAX, SYSCONF },
 #endif
 #ifdef _SC_2_LOCALEDEF
     { "POSIX2_LOCALEDEF", _SC_2_LOCALEDEF, SYSCONF },
@@ -528,6 +537,11 @@ static const struct conf vars[] =
 #endif
 
     /* Programming environments.  */
+#ifdef _CS_V5_WIDTH_RESTRICTED_ENVS
+    { "_XBS5_WIDTH_RESTRICTED_ENVS", _CS_V5_WIDTH_RESTRICTED_ENVS, CONFSTR },
+    { "XBS5_WIDTH_RESTRICTED_ENVS", _CS_V5_WIDTH_RESTRICTED_ENVS, CONFSTR },
+#endif
+
 #ifdef _SC_XBS5_ILP32_OFF32
     { "_XBS5_ILP32_OFF32", _SC_XBS5_ILP32_OFF32, SYSCONF },
 #endif
@@ -659,6 +673,75 @@ static const struct conf vars[] =
 #endif
 #ifdef _CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS
     { "POSIX_V6_LPBIG_OFFBIG_LINTFLAGS", _CS_POSIX_V6_LPBIG_OFFBIG_LINTFLAGS, CONFSTR },
+#endif
+
+#ifdef _SC_V7_ILP32_OFF32
+    { "_POSIX_V7_ILP32_OFF32", _SC_V7_ILP32_OFF32, SYSCONF },
+#endif
+#ifdef _CS_POSIX_V7_ILP32_OFF32_CFLAGS
+    { "POSIX_V7_ILP32_OFF32_CFLAGS", _CS_POSIX_V7_ILP32_OFF32_CFLAGS, CONFSTR },
+#endif
+#ifdef _CS_POSIX_V7_ILP32_OFF32_LDFLAGS
+    { "POSIX_V7_ILP32_OFF32_LDFLAGS", _CS_POSIX_V7_ILP32_OFF32_LDFLAGS, CONFSTR },
+#endif
+#ifdef _CS_POSIX_V7_ILP32_OFF32_LIBS
+    { "POSIX_V7_ILP32_OFF32_LIBS", _CS_POSIX_V7_ILP32_OFF32_LIBS, CONFSTR },
+#endif
+#ifdef _CS_POSIX_V7_ILP32_OFF32_LINTFLAGS
+    { "POSIX_V7_ILP32_OFF32_LINTFLAGS", _CS_POSIX_V7_ILP32_OFF32_LINTFLAGS, CONFSTR },
+#endif
+
+#ifdef _CS_V7_WIDTH_RESTRICTED_ENVS
+    { "_POSIX_V7_WIDTH_RESTRICTED_ENVS", _CS_V7_WIDTH_RESTRICTED_ENVS, CONFSTR },
+    { "POSIX_V7_WIDTH_RESTRICTED_ENVS", _CS_V7_WIDTH_RESTRICTED_ENVS, CONFSTR },
+#endif
+
+#ifdef _SC_V7_ILP32_OFFBIG
+    { "_POSIX_V7_ILP32_OFFBIG", _SC_V7_ILP32_OFFBIG, SYSCONF },
+#endif
+#ifdef _CS_POSIX_V7_ILP32_OFFBIG_CFLAGS
+    { "POSIX_V7_ILP32_OFFBIG_CFLAGS", _CS_POSIX_V7_ILP32_OFFBIG_CFLAGS, CONFSTR },
+#endif
+#ifdef _CS_POSIX_V7_ILP32_OFFBIG_LDFLAGS
+    { "POSIX_V7_ILP32_OFFBIG_LDFLAGS", _CS_POSIX_V7_ILP32_OFFBIG_LDFLAGS, CONFSTR },
+#endif
+#ifdef _CS_POSIX_V7_ILP32_OFFBIG_LIBS
+    { "POSIX_V7_ILP32_OFFBIG_LIBS", _CS_POSIX_V7_ILP32_OFFBIG_LIBS, CONFSTR },
+#endif
+#ifdef _CS_POSIX_V7_ILP32_OFFBIG_LINTFLAGS
+    { "POSIX_V7_ILP32_OFFBIG_LINTFLAGS", _CS_POSIX_V7_ILP32_OFFBIG_LINTFLAGS, CONFSTR },
+#endif
+
+#ifdef _SC_V7_LP64_OFF64
+    { "_POSIX_V7_LP64_OFF64", _SC_V7_LP64_OFF64, SYSCONF },
+#endif
+#ifdef _CS_POSIX_V7_LP64_OFF64_CFLAGS
+    { "POSIX_V7_LP64_OFF64_CFLAGS", _CS_POSIX_V7_LP64_OFF64_CFLAGS, CONFSTR },
+#endif
+#ifdef _CS_POSIX_V7_LP64_OFF64_LDFLAGS
+    { "POSIX_V7_LP64_OFF64_LDFLAGS", _CS_POSIX_V7_LP64_OFF64_LDFLAGS, CONFSTR },
+#endif
+#ifdef _CS_POSIX_V7_LP64_OFF64_LIBS
+    { "POSIX_V7_LP64_OFF64_LIBS", _CS_POSIX_V7_LP64_OFF64_LIBS, CONFSTR },
+#endif
+#ifdef _CS_POSIX_V7_LP64_OFF64_LINTFLAGS
+    { "POSIX_V7_LP64_OFF64_LINTFLAGS", _CS_POSIX_V7_LP64_OFF64_LINTFLAGS, CONFSTR },
+#endif
+
+#ifdef _SC_V7_LPBIG_OFFBIG
+    { "_POSIX_V7_LPBIG_OFFBIG", _SC_V7_LPBIG_OFFBIG, SYSCONF },
+#endif
+#ifdef _CS_POSIX_V7_LPBIG_OFFBIG_CFLAGS
+    { "POSIX_V7_LPBIG_OFFBIG_CFLAGS", _CS_POSIX_V7_LPBIG_OFFBIG_CFLAGS, CONFSTR },
+#endif
+#ifdef _CS_POSIX_V7_LPBIG_OFFBIG_LDFLAGS
+    { "POSIX_V7_LPBIG_OFFBIG_LDFLAGS", _CS_POSIX_V7_LPBIG_OFFBIG_LDFLAGS, CONFSTR },
+#endif
+#ifdef _CS_POSIX_V7_LPBIG_OFFBIG_LIBS
+    { "POSIX_V7_LPBIG_OFFBIG_LIBS", _CS_POSIX_V7_LPBIG_OFFBIG_LIBS, CONFSTR },
+#endif
+#ifdef _CS_POSIX_V7_LPBIG_OFFBIG_LINTFLAGS
+    { "POSIX_V7_LPBIG_OFFBIG_LINTFLAGS", _CS_POSIX_V7_LPBIG_OFFBIG_LINTFLAGS, CONFSTR },
 #endif
 
 #ifdef _SC_ADVISORY_INFO
@@ -926,12 +1009,20 @@ static const struct conf vars[] =
   };
 
 
-static struct { const char *name; int num; } specs[] =
+static const struct { const char *name; int num; } specs[] =
   {
+    { "XBS5_ILP32_OFF32", _SC_XBS5_ILP32_OFF32 },
+    { "XBS5_ILP32_OFFBIG", _SC_XBS5_ILP32_OFFBIG },
+    { "XBS5_LP64_OFF64", _SC_XBS5_LP64_OFF64 },
+    { "XBS5_LPBIG_OFFBIG", _SC_XBS5_LPBIG_OFFBIG },
     { "POSIX_V6_ILP32_OFF32", _SC_V6_ILP32_OFF32 },
     { "POSIX_V6_ILP32_OFFBIG", _SC_V6_ILP32_OFFBIG },
     { "POSIX_V6_LP64_OFF64", _SC_V6_LP64_OFF64 },
-    { "POSIX_V6_LPBIG_OFFBIG", _SC_V6_LPBIG_OFFBIG }
+    { "POSIX_V6_LPBIG_OFFBIG", _SC_V6_LPBIG_OFFBIG },
+    { "POSIX_V7_ILP32_OFF32", _SC_V7_ILP32_OFF32 },
+    { "POSIX_V7_ILP32_OFFBIG", _SC_V7_ILP32_OFFBIG },
+    { "POSIX_V7_LP64_OFF64", _SC_V7_LP64_OFF64 },
+    { "POSIX_V7_LPBIG_OFFBIG", _SC_V7_LPBIG_OFFBIG },
   };
 static const int nspecs = sizeof (specs) / sizeof (specs[0]);
 
@@ -949,6 +1040,7 @@ usage (void)
   exit (2);
 }
 
+
 static void
 print_all (const char *path)
 {
@@ -960,34 +1052,34 @@ print_all (const char *path)
     printf("%-35s", c->name);
     switch (c->call) {
       case PATHCONF:
-        value = pathconf (path, c->call_name);
-        if (value != -1) {
-          printf("%ld", value);
-        }
-        printf("\n");
-        break;
+	value = pathconf (path, c->call_name);
+	if (value != -1) {
+	  printf("%ld", value);
+	}
+	printf("\n");
+	break;
       case SYSCONF:
-        value = sysconf (c->call_name);
-        if (value == -1l) {
-          if (c->call_name == _SC_UINT_MAX
-            || c->call_name == _SC_ULONG_MAX)
-            printf ("%lu", value);
-        }
-        else {
-          printf ("%ld", value);
-        }
-        printf ("\n");
-        break;
+	value = sysconf (c->call_name);
+	if (value == -1l) {
+	  if (c->call_name == _SC_UINT_MAX
+	    || c->call_name == _SC_ULONG_MAX)
+	    printf ("%lu", value);
+	}
+	else {
+	  printf ("%ld", value);
+	}
+	printf ("\n");
+	break;
       case CONFSTR:
-        clen = confstr (c->call_name, (char *) NULL, 0);
-        cvalue = (char *) malloc (clen);
-        if (cvalue == NULL)
-          error (3, 0, _("memory exhausted"));
-        if (confstr (c->call_name, cvalue, clen) != clen)
-          error (3, errno, "confstr");
-        printf ("%.*s\n", (int) clen, cvalue);
+	clen = confstr (c->call_name, (char *) NULL, 0);
+	cvalue = (char *) malloc (clen);
+	if (cvalue == NULL)
+	  error (3, 0, _("memory exhausted"));
+	if (confstr (c->call_name, cvalue, clen) != clen)
+	  error (3, errno, "confstr");
+	printf ("%.*s\n", (int) clen, cvalue);
 	free (cvalue);
-        break;
+	break;
     }
   }
   exit (0);
@@ -1008,13 +1100,27 @@ main (int argc, char *argv[])
 
   if (argc > 1 && strcmp (argv[1], "--version") == 0)
     {
-      fprintf (stderr, "getconf (GNU %s) %s\n", PACKAGE, VERSION);
-      fprintf (stderr, gettext ("\
+      printf ("getconf (GNU %s) %s\n", PACKAGE, VERSION);
+      printf (gettext ("\
 Copyright (C) %s Free Software Foundation, Inc.\n\
 This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
-"), "2008");
-      fprintf (stderr, gettext ("Written by %s.\n"), "Roland McGrath");
+"), "2009");
+      printf (gettext ("Written by %s.\n"), "Roland McGrath");
+      return 0;
+    }
+
+  if (argc > 1 && strcmp (argv[1], "--help") == 0)
+    {
+      printf (gettext ("\
+Usage: getconf [-v SPEC] VAR\n\
+  or:  getconf [-v SPEC] PATH_VAR PATH\n\
+\n\
+Get the configuration value for variable VAR, or for variable PATH_VAR\n\
+for path PATH.  If SPEC is given, give values for compilation\n\
+environment SPEC.\n\n"));
+      fputs (gettext ("For bug reporting instructions, please see:\n\
+<http://www.gnu.org/software/libc/bugs.html>.\n"), stdout);
       return 0;
     }
 
@@ -1068,6 +1174,18 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
 
       switch (specs[i].num)
 	{
+#ifndef _XBS5_ILP32_OFF32
+	  case _SC_XBS5_ILP32_OFF32:
+#endif
+#ifndef _XBS5_ILP32_OFFBIG
+	  case _SC_XBS5_ILP32_OFFBIG:
+#endif
+#ifndef _XBS5_LP64_OFF64
+	  case _SC_XBS5_LP64_OFF64:
+#endif
+#ifndef _XBS5_LPBIG_OFFBIG
+	  case _SC_XBS5_LPBIG_OFFBIG:
+#endif
 #ifndef _POSIX_V6_ILP32_OFF32
 	  case _SC_V6_ILP32_OFF32:
 #endif
@@ -1079,6 +1197,18 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
 #endif
 #ifndef _POSIX_V6_LPBIG_OFFBIG
 	  case _SC_V6_LPBIG_OFFBIG:
+#endif
+#ifndef _POSIX_V7_ILP32_OFF32
+	  case _SC_V7_ILP32_OFF32:
+#endif
+#ifndef _POSIX_V7_ILP32_OFFBIG
+	  case _SC_V7_ILP32_OFFBIG:
+#endif
+#ifndef _POSIX_V7_LP64_OFF64
+	  case _SC_V7_LP64_OFF64:
+#endif
+#ifndef _POSIX_V7_LPBIG_OFFBIG
+	  case _SC_V7_LPBIG_OFFBIG:
 #endif
 	    {
 	      const char *args[argc + 3];
@@ -1109,13 +1239,17 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
 	usage ();
     }
 
-  if (argc < 2 || argc > 3)
+  int ai = 1;
+  if (argc > ai && strcmp (argv[ai], "--") == 0)
+    ++ai;
+
+  if (argc - ai < 1 || argc - ai > 2)
     usage ();
 
   for (c = vars; c->name != NULL; ++c)
-    if (strcmp (c->name, argv[1]) == 0
+    if (strcmp (c->name, argv[ai]) == 0
 	|| (strncmp (c->name, "_POSIX_", 7) == 0
-	    && strcmp (c->name + 7, argv[1]) == 0))
+	    && strcmp (c->name + 7, argv[ai]) == 0))
       {
 	long int value;
 	size_t clen;
@@ -1123,14 +1257,14 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
 	switch (c->call)
 	  {
 	  case PATHCONF:
-	    if (argc < 3)
+	    if (argc - ai < 2)
 	      usage ();
 	    errno = 0;
-	    value = pathconf (argv[2], c->call_name);
+	    value = pathconf (argv[ai + 1], c->call_name);
 	    if (value == -1)
 	      {
 		if (errno)
-		  error (3, errno, "pathconf: %s", argv[2]);
+		  error (3, errno, "pathconf: %s", argv[ai + 1]);
 		else
 		  puts (_("undefined"));
 	      }
@@ -1139,7 +1273,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
 	    exit (0);
 
 	  case SYSCONF:
-	    if (argc > 2)
+	    if (argc - ai > 1)
 	      usage ();
 	    value = sysconf (c->call_name);
 	    if (value == -1l)
@@ -1155,7 +1289,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
 	    exit (0);
 
 	  case CONFSTR:
-	    if (argc > 2)
+	    if (argc - ai > 1)
 	      usage ();
 	    clen = confstr (c->call_name, (char *) NULL, 0);
 	    cvalue = (char *) malloc (clen);
@@ -1170,7 +1304,7 @@ warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
 	  }
       }
 
-  error (2, 0, _("Unrecognized variable `%s'"), argv[1]);
+  error (2, 0, _("Unrecognized variable `%s'"), argv[ai]);
   /* NOTREACHED */
   return 2;
 }
