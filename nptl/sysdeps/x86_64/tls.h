@@ -1,5 +1,5 @@
 /* Definition for thread-local data handling.  nptl/x86_64 version.
-   Copyright (C) 2002,2003,2004,2005,2006,2007 Free Software Foundation, Inc.
+   Copyright (C) 2002-2007, 2008, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -28,6 +28,8 @@
 # include <stdlib.h>
 # include <sysdep.h>
 # include <kernel-features.h>
+# include <bits/wordsize.h>
+# include <xmmintrin.h>
 
 
 /* Type for the dtv.  */
@@ -54,9 +56,23 @@ typedef struct
   uintptr_t stack_guard;
   uintptr_t pointer_guard;
   unsigned long int vgetcpu_cache[2];
-#ifndef __ASSUME_PRIVATE_FUTEX
+# ifndef __ASSUME_PRIVATE_FUTEX
   int private_futex;
-#endif
+# else
+  int __unused1;
+# endif
+# if __WORDSIZE == 64
+  int rtld_must_xmm_save;
+# endif
+  /* Reservation of some values for the TM ABI.  */
+  void *__private_tm[5];
+# if __WORDSIZE == 64
+  long int __unused2;
+  /* Have space for the post-AVX register size.  */
+  __m128 rtld_savespace_sse[8][4];
+
+  void *__padding[8];
+# endif
 } tcbhead_t;
 
 #else /* __ASSEMBLER__ */
@@ -101,7 +117,12 @@ typedef struct
 # define TLS_TCB_SIZE sizeof (struct pthread)
 
 /* Alignment requirements for the TCB.  */
-# define TLS_TCB_ALIGN __alignof__ (struct pthread)
+//# define TLS_TCB_ALIGN __alignof__ (struct pthread)
+// Normally the above would be correct  But we have to store post-AVX
+// vector registers in the TCB and we want the storage to be aligned.
+// unfortunately there isn't yet a type for these values and hence no
+// 32-byte alignment requirement.  Make this explicit, for now.
+# define TLS_TCB_ALIGN 32
 
 /* The TCB can have any size and the memory following the address the
    thread pointer points to is unspecified.  Allocate the TCB there.  */
@@ -167,7 +188,7 @@ typedef struct
 
    The contained asm must *not* be marked volatile since otherwise
    assignments like
-        pthread_descr self = thread_self();
+	pthread_descr self = thread_self();
    do not get optimized away.  */
 # define THREAD_SELF \
   ({ struct pthread *__self;						      \
@@ -290,7 +311,7 @@ typedef struct
 
 
 /* Atomic compare and exchange on TLS, returning old value.  */
-#define THREAD_ATOMIC_CMPXCHG_VAL(descr, member, newval, oldval) \
+# define THREAD_ATOMIC_CMPXCHG_VAL(descr, member, newval, oldval) \
   ({ __typeof (descr->member) __ret;					      \
      __typeof (oldval) __old = (oldval);				      \
      if (sizeof (descr->member) == 4)					      \
@@ -304,8 +325,19 @@ typedef struct
      __ret; })
 
 
+/* Atomic logical and.  */
+# define THREAD_ATOMIC_AND(descr, member, val) \
+  (void) ({ if (sizeof ((descr)->member) == 4)				      \
+	      asm volatile (LOCK_PREFIX "andl %1, %%fs:%P0"		      \
+			    :: "i" (offsetof (struct pthread, member)),	      \
+			       "ir" (val));				      \
+	    else							      \
+	      /* Not necessary for other sizes in the moment.  */	      \
+	      abort (); })
+
+
 /* Atomic set bit.  */
-#define THREAD_ATOMIC_BIT_SET(descr, member, bit) \
+# define THREAD_ATOMIC_BIT_SET(descr, member, bit) \
   (void) ({ if (sizeof ((descr)->member) == 4)				      \
 	      asm volatile (LOCK_PREFIX "orl %1, %%fs:%P0"		      \
 			    :: "i" (offsetof (struct pthread, member)),	      \
@@ -315,7 +347,7 @@ typedef struct
 	      abort (); })
 
 
-#define CALL_THREAD_FCT(descr) \
+# define CALL_THREAD_FCT(descr) \
   ({ void *__res;							      \
      asm volatile ("movq %%fs:%P2, %%rdi\n\t"				      \
 		   "callq *%%fs:%P1"					      \
@@ -336,18 +368,18 @@ typedef struct
 
 
 /* Set the pointer guard field in the TCB head.  */
-#define THREAD_SET_POINTER_GUARD(value) \
+# define THREAD_SET_POINTER_GUARD(value) \
   THREAD_SETMEM (THREAD_SELF, header.pointer_guard, value)
-#define THREAD_COPY_POINTER_GUARD(descr) \
+# define THREAD_COPY_POINTER_GUARD(descr) \
   ((descr)->header.pointer_guard					      \
    = THREAD_GETMEM (THREAD_SELF, header.pointer_guard))
 
 
 /* Get and set the global scope generation counter in the TCB head.  */
-#define THREAD_GSCOPE_FLAG_UNUSED 0
-#define THREAD_GSCOPE_FLAG_USED   1
-#define THREAD_GSCOPE_FLAG_WAIT   2
-#define THREAD_GSCOPE_RESET_FLAG() \
+# define THREAD_GSCOPE_FLAG_UNUSED 0
+# define THREAD_GSCOPE_FLAG_USED   1
+# define THREAD_GSCOPE_FLAG_WAIT   2
+# define THREAD_GSCOPE_RESET_FLAG() \
   do									      \
     { int __res;							      \
       asm volatile ("xchgl %0, %%fs:%P1"				      \
@@ -358,10 +390,45 @@ typedef struct
 	lll_futex_wake (&THREAD_SELF->header.gscope_flag, 1, LLL_PRIVATE);    \
     }									      \
   while (0)
-#define THREAD_GSCOPE_SET_FLAG() \
+# define THREAD_GSCOPE_SET_FLAG() \
   THREAD_SETMEM (THREAD_SELF, header.gscope_flag, THREAD_GSCOPE_FLAG_USED)
-#define THREAD_GSCOPE_WAIT() \
+# define THREAD_GSCOPE_WAIT() \
   GL(dl_wait_lookup_done) ()
+
+
+# ifdef SHARED
+/* Defined in dl-trampoline.S.  */
+extern void _dl_x86_64_save_sse (void);
+extern void _dl_x86_64_restore_sse (void);
+
+# define RTLD_CHECK_FOREIGN_CALL \
+  (THREAD_GETMEM (THREAD_SELF, header.rtld_must_xmm_save) != 0)
+
+/* NB: Don't use the xchg operation because that would imply a lock
+   prefix which is expensive and unnecessary.  The cache line is also
+   not contested at all.  */
+#  define RTLD_ENABLE_FOREIGN_CALL \
+  int old_rtld_must_xmm_save = THREAD_GETMEM (THREAD_SELF,		      \
+					      header.rtld_must_xmm_save);     \
+  THREAD_SETMEM (THREAD_SELF, header.rtld_must_xmm_save, 1)
+
+#  define RTLD_PREPARE_FOREIGN_CALL \
+  do if (THREAD_GETMEM (THREAD_SELF, header.rtld_must_xmm_save))	      \
+    {									      \
+      _dl_x86_64_save_sse ();						      \
+      THREAD_SETMEM (THREAD_SELF, header.rtld_must_xmm_save, 0);	      \
+    }									      \
+  while (0)
+
+#  define RTLD_FINALIZE_FOREIGN_CALL \
+  do {									      \
+    if (THREAD_GETMEM (THREAD_SELF, header.rtld_must_xmm_save) == 0)	      \
+      _dl_x86_64_restore_sse ();					      \
+    THREAD_SETMEM (THREAD_SELF, header.rtld_must_xmm_save,		      \
+		   old_rtld_must_xmm_save);				      \
+  } while (0)
+# endif
+
 
 #endif /* __ASSEMBLER__ */
 

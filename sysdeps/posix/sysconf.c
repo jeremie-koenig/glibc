@@ -1,4 +1,4 @@
-/* Copyright (C) 1991,1993,1995-1997,1999-2003,2004,2006
+/* Copyright (C) 1991,1993,1995-1997,1999-2003,2004,2006,2009
 	Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -38,7 +38,9 @@
   (!defined _XBS5_ILP32_OFF32 || !defined _XBS5_ILP32_OFFBIG \
    || !defined _XBS5_LP64_OFF64 || !defined _XBS5_LPBIG_OFFBIG \
    || !defined _POSIX_V6_ILP32_OFF32 || !defined _POSIX_V6_ILP32_OFFBIG \
-   || !defined _POSIX_V6_LP64_OFF64 || !defined _POSIX_V6_LPBIG_OFFBIG)
+   || !defined _POSIX_V6_LP64_OFF64 || !defined _POSIX_V6_LPBIG_OFFBIG \
+   || !defined _POSIX_V7_ILP32_OFF32 || !defined _POSIX_V7_ILP32_OFFBIG \
+   || !defined _POSIX_V7_LP64_OFF64 || !defined _POSIX_V7_LPBIG_OFFBIG)
 #if NEED_CHECK_SPEC
 static long int __sysconf_check_spec (const char *spec);
 #endif
@@ -840,6 +842,31 @@ __sysconf (name)
       return __sysconf_check_spec ("LPBIG_OFFBIG");
 #endif
 
+    case _SC_V7_ILP32_OFF32:
+#ifdef _POSIX_V7_ILP32_OFF32
+      return _POSIX_V7_ILP32_OFF32;
+#else
+      return __sysconf_check_spec ("ILP32_OFF32");
+#endif
+    case _SC_V7_ILP32_OFFBIG:
+#ifdef _POSIX_V7_ILP32_OFFBIG
+      return _POSIX_V7_ILP32_OFFBIG;
+#else
+      return __sysconf_check_spec ("ILP32_OFFBIG");
+#endif
+    case _SC_V7_LP64_OFF64:
+#ifdef _POSIX_V7_LP64_OFF64
+      return _POSIX_V7_LP64_OFF64;
+#else
+      return __sysconf_check_spec ("LP64_OFF64");
+#endif
+    case _SC_V7_LPBIG_OFFBIG:
+#ifdef _POSIX_V7_LPBIG_OFFBIG
+      return _POSIX_V7_LPBIG_OFFBIG;
+#else
+      return __sysconf_check_spec ("LPBIG_OFFBIG");
+#endif
+
     case _SC_XOPEN_LEGACY:
       return _XOPEN_LEGACY;
 
@@ -1177,6 +1204,16 @@ __sysconf (name)
 #else
       return -1;
 #endif
+
+    case _SC_TRACE_EVENT_NAME_MAX:
+    case _SC_TRACE_NAME_MAX:
+    case _SC_TRACE_SYS_MAX:
+    case _SC_TRACE_USER_EVENT_MAX:
+      /* No support for tracing.  */
+
+    case _SC_XOPEN_STREAMS:
+      /* No support for STREAMS.  */
+      return -1;
 
     case _SC_LEVEL1_ICACHE_SIZE:
     case _SC_LEVEL1_ICACHE_ASSOC:
