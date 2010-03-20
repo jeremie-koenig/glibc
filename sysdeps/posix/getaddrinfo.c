@@ -714,16 +714,13 @@ gaih_inet (const char *name, const struct gaih_service *service,
 		      status = DL_CALL_FCT (fct4, (name, pat, tmpbuf,
 						   tmpbuflen, &rc, &herrno,
 						   NULL));
+		      if (status == NSS_STATUS_SUCCESS)
+			break;
 		      if (status != NSS_STATUS_TRYAGAIN
 			  || rc != ERANGE || herrno != NETDB_INTERNAL)
 			{
-			  if (herrno == NETDB_INTERNAL)
-			    {
-			      __set_h_errno (herrno);
-			      _res.options = old_res_options;
-			      return -EAI_SYSTEM;
-			    }
-			  if (herrno == TRY_AGAIN)
+			  if (status == NSS_STATUS_TRYAGAIN
+			      && herrno == TRY_AGAIN)
 			    no_data = EAI_AGAIN;
 			  else
 			    no_data = herrno == NO_DATA;
@@ -732,6 +729,8 @@ gaih_inet (const char *name, const struct gaih_service *service,
 		      tmpbuf = extend_alloca (tmpbuf,
 					      tmpbuflen, 2 * tmpbuflen);
 		    }
+
+		  no_inet6_data = no_data;
 
 		  if (status == NSS_STATUS_SUCCESS)
 		    {
@@ -829,6 +828,8 @@ gaih_inet (const char *name, const struct gaih_service *service,
 			       && inet6_status != NSS_STATUS_UNAVAIL)
 			status = inet6_status;
 		    }
+		  else
+		    status = NSS_STATUS_UNAVAIL;
 		}
 
 	      if (nss_next_action (nip, status) == NSS_ACTION_RETURN)
@@ -2108,7 +2109,7 @@ getaddrinfo (const char *name, const char *service,
 	{
 	  /* If we haven't seen both IPv4 and IPv6 interfaces we can
 	     narrow down the search.  */
-	  if (! seen_ipv4 || ! seen_ipv6)
+	  if ((! seen_ipv4 || ! seen_ipv6) && (seen_ipv4 || seen_ipv6))
 	    {
 	      local_hints = *hints;
 	      local_hints.ai_family = seen_ipv4 ? PF_INET : PF_INET6;

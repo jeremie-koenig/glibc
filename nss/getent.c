@@ -1,4 +1,4 @@
-/* Copyright (c) 1998-2007, 2008 Free Software Foundation, Inc.
+/* Copyright (c) 1998-2008, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Thorsten Kukuk <kukuk@suse.de>, 1998.
 
@@ -24,6 +24,7 @@
 #include <ctype.h>
 #include <error.h>
 #include <grp.h>
+#include <gshadow.h>
 #include <libintl.h>
 #include <locale.h>
 #include <mcheck.h>
@@ -59,9 +60,7 @@ static const struct argp_option args_options[] =
   };
 
 /* Short description of program.  */
-static const char doc[] = N_("Get entries from administrative database.\v\
-For bug reporting instructions, please see:\n\
-<http://www.gnu.org/software/libc/bugs.html>.\n");
+static const char doc[] = N_("Get entries from administrative database.");
 
 /* Prototype for option handler.  */
 static error_t parse_option (int key, char *arg, struct argp_state *state);
@@ -84,7 +83,7 @@ print_version (FILE *stream, struct argp_state *state)
 Copyright (C) %s Free Software Foundation, Inc.\n\
 This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
-"), "2008");
+"), "2009");
   fprintf (stream, gettext ("Written by %s.\n"), "Thorsten Kukuk");
 }
 
@@ -229,6 +228,70 @@ group_keys (int number, char *key[])
 	result = 2;
       else
 	print_group (grp);
+    }
+
+  return result;
+}
+
+/* This is for gshadow */
+static void
+print_gshadow (struct sgrp *sg)
+{
+  unsigned int i = 0;
+
+  printf ("%s:%s:",
+	  sg->sg_namp ? sg->sg_namp : "",
+	  sg->sg_passwd ? sg->sg_passwd : "");
+
+  while (sg->sg_adm[i] != NULL)
+    {
+      fputs_unlocked (sg->sg_adm[i], stdout);
+      ++i;
+      if (sg->sg_adm[i] != NULL)
+	putchar_unlocked (',');
+    }
+
+  putchar_unlocked (':');
+
+  i = 0;
+  while (sg->sg_mem[i] != NULL)
+    {
+      fputs_unlocked (sg->sg_mem[i], stdout);
+      ++i;
+      if (sg->sg_mem[i] != NULL)
+	putchar_unlocked (',');
+    }
+
+  putchar_unlocked ('\n');
+}
+
+static int
+gshadow_keys (int number, char *key[])
+{
+  int result = 0;
+  int i;
+
+  if (number == 0)
+    {
+      struct sgrp *sg;
+
+      setsgent ();
+      while ((sg = getsgent ()) != NULL)
+	print_gshadow (sg);
+      endsgent ();
+      return result;
+    }
+
+  for (i = 0; i < number; ++i)
+    {
+      struct sgrp *sg;
+
+      sg = getsgnam (key[i]);
+
+      if (sg == NULL)
+	result = 2;
+      else
+	print_gshadow (sg);
     }
 
   return result;
@@ -448,8 +511,6 @@ print_networks (struct netent *net)
       putchar_unlocked (' ');
       fputs_unlocked (net->n_aliases[i], stdout);
       ++i;
-      if (net->n_aliases[i] != NULL)
-	putchar_unlocked (',');
     }
   putchar_unlocked ('\n');
 }
@@ -473,7 +534,7 @@ networks_keys (int number, char *key[])
   for (i = 0; i < number; ++i)
     {
       if (isdigit (key[i][0]))
-	net = getnetbyaddr (inet_addr (key[i]), AF_UNIX);
+	net = getnetbyaddr (ntohl (inet_addr (key[i])), AF_UNSPEC);
       else
 	net = getnetbyname (key[i]);
 
@@ -760,6 +821,7 @@ D(ahostsv6)
 D(aliases)
 D(ethers)
 D(group)
+D(gshadow)
 D(hosts)
 D(netgroup)
 D(networks)
@@ -840,6 +902,12 @@ more_help (int key, const char *text, void *input)
 	      fputs_unlocked (databases[i].name, fp);
 	      col += len + 1;
 	    }
+
+	  fputs ("\n\n", fp);
+
+	  fputs (gettext ("\
+For bug reporting instructions, please see:\n\
+<http://www.gnu.org/software/libc/bugs.html>.\n"), fp);
 
 	  if (fclose (fp) == 0)
 	    return doc;
