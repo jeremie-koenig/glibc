@@ -24,3 +24,4 @@ t/dl-sysdep.c_SHARED
 t/__rtld_lock_recursive_t
 t/____longjmp_chk
 t/unwind-resume.c
+t/extern_inline
