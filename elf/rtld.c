@@ -1,5 +1,5 @@
 /* Run time dynamic linker.
-   Copyright (C) 1995-2006, 2007, 2008, 2009 Free Software Foundation, Inc.
+   Copyright (C) 1995-2006, 2007, 2008, 2009, 2010 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -24,7 +24,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/mman.h>		/* Check if MAP_ANON is defined.  */
+#include <sys/mman.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <ldsodefs.h>
@@ -125,8 +125,14 @@ struct rtld_global _rtld_global =
     /* Default presumption without further information is executable stack.  */
     ._dl_stack_flags = PF_R|PF_W|PF_X,
 #ifdef _LIBC_REENTRANT
-    ._dl_load_lock = _RTLD_LOCK_RECURSIVE_INITIALIZER
+    ._dl_load_lock = _RTLD_LOCK_RECURSIVE_INITIALIZER,
 #endif
+    ._dl_nns = 1,
+    ._dl_ns =
+    {
+      [LM_ID_BASE] = { ._ns_unique_sym_table
+		       = { .lock = _RTLD_LOCK_RECURSIVE_INITIALIZER } }
+    }
   };
 /* If we would use strong_alias here the compiler would see a
    non-hidden definition.  This would undo the effect of the previous
@@ -176,7 +182,7 @@ extern struct rtld_global_ro _rtld_local_ro
 
 
 static void dl_main (const ElfW(Phdr) *phdr, ElfW(Word) phnum,
-		     ElfW(Addr) *user_entry);
+		     ElfW(Addr) *user_entry, ElfW(auxv_t) *auxv);
 
 /* These two variables cannot be moved into .data.rel.ro.  */
 static struct libname_list _dl_rtld_libname;
@@ -574,7 +580,7 @@ _dl_start (void *arg)
 struct relocate_args
 {
   struct link_map *l;
-  int lazy;
+  int reloc_mode;
 };
 
 struct map_args
@@ -613,7 +619,7 @@ relocate_doit (void *a)
 {
   struct relocate_args *args = (struct relocate_args *) a;
 
-  _dl_relocate_object (args->l, args->l->l_scope, args->lazy, 0);
+  _dl_relocate_object (args->l, args->l->l_scope, args->reloc_mode, 0);
 }
 
 static void
@@ -876,7 +882,8 @@ static int version_info attribute_relro;
 static void
 dl_main (const ElfW(Phdr) *phdr,
 	 ElfW(Word) phnum,
-	 ElfW(Addr) *user_entry)
+	 ElfW(Addr) *user_entry,
+	 ElfW(auxv_t) *auxv)
 {
   const ElfW(Phdr) *ph;
   enum mode mode;
@@ -921,6 +928,8 @@ dl_main (const ElfW(Phdr) *phdr,
 
   if (*user_entry == (ElfW(Addr)) ENTRY_POINT)
     {
+      ElfW(auxv_t) *av;
+
       /* Ho ho.  We are not the program interpreter!  We are the program
 	 itself!  This means someone ran ld.so as a command.  Well, that
 	 might be convenient to do sometimes.  We support it by
@@ -1007,11 +1016,12 @@ of this helper program; chances are you did not intend to run this program.\n\
 \n\
   --list                list all dependencies and how they are resolved\n\
   --verify              verify that given object really is a dynamically linked\n\
-                        object we can handle\n\
+			object we can handle\n\
   --library-path PATH   use given PATH instead of content of the environment\n\
-                        variable LD_LIBRARY_PATH\n\
+			variable LD_LIBRARY_PATH\n\
   --inhibit-rpath LIST  ignore RUNPATH and RPATH information in object names\n\
-                        in LIST\n");
+			in LIST\n\
+  --audit LIST          use objects named in LIST as auditors\n");
 
       ++_dl_skip_args;
       --_dl_argc;
@@ -1075,6 +1085,22 @@ of this helper program; chances are you did not intend to run this program.\n\
 	 makes sense to free the old string first.  */
       main_map->l_name = (char *) "";
       *user_entry = main_map->l_entry;
+
+      /* Adjust the on-stack auxiliary vector so that it looks like the
+	 binary was executed directly.  */
+      for (av = auxv; av->a_type != AT_NULL; av++)
+	switch (av->a_type)
+	  {
+	  case AT_PHDR:
+	    av->a_un.a_val = phdr;
+	    break;
+	  case AT_PHNUM:
+	    av->a_un.a_val = phnum;
+	    break;
+	  case AT_ENTRY:
+	    av->a_un.a_val = *user_entry;
+	    break;
+	  }
     }
   else
     {
@@ -1781,12 +1807,6 @@ ERROR: ld.so: object '%s' cannot be loaded as audit interface: %s; ignored.\n",
   for (i = main_map->l_searchlist.r_nlist; i > 0; )
     main_map->l_searchlist.r_list[--i]->l_global = 1;
 
-#ifndef MAP_ANON
-  /* We are done mapping things, so close the zero-fill descriptor.  */
-  __close (_dl_zerofd);
-  _dl_zerofd = -1;
-#endif
-
   /* Remove _dl_rtld_map from the chain.  */
   GL(dl_rtld_map).l_prev->l_next = GL(dl_rtld_map).l_next;
   if (GL(dl_rtld_map).l_next != NULL)
@@ -1908,7 +1928,9 @@ ERROR: ld.so: object '%s' cannot be loaded as audit interface: %s; ignored.\n",
 	  struct link_map *l = main_map;
 
 	  /* Relocate the main executable.  */
-	  struct relocate_args args = { .l = l, .lazy = GLRO(dl_lazy) };
+	  struct relocate_args args = { .l = l,
+					.reloc_mode = (GLRO(dl_lazy)
+						       ? RTLD_LAZY : 0) };
 	  _dl_receive_error (print_unresolved, relocate_doit, &args);
 
 	  /* This loop depends on the dependencies of the executable to
@@ -1985,7 +2007,7 @@ ERROR: ld.so: object '%s' cannot be loaded as audit interface: %s; ignored.\n",
 	      struct relocate_args args;
 	      struct link_map *l;
 
-	      args.lazy = GLRO(dl_lazy);
+	      args.reloc_mode = GLRO(dl_lazy) ? RTLD_LAZY : 0;
 
 	      l = main_map;
 	      while (l->l_next != NULL)
@@ -2010,7 +2032,7 @@ ERROR: ld.so: object '%s' cannot be loaded as audit interface: %s; ignored.\n",
 		  _dl_relocate_object (&GL(dl_rtld_map),
 				       main_map->l_scope, 0, 0);
 		}
-            }
+	    }
 #define VERNEEDTAG (DT_NUM + DT_THISPROCNUM + DT_VERSIONTAGIDX (DT_VERNEED))
 	  if (version_info)
 	    {
@@ -2183,8 +2205,6 @@ ERROR: ld.so: object '%s' cannot be loaded as audit interface: %s; ignored.\n",
 	  if (l->l_tls_blocksize != 0 && tls_init_tp_called)
 	    _dl_add_to_slotinfo (l);
 	}
-
-      _dl_sysdep_start_cleanup ();
     }
   else
     {
@@ -2225,7 +2245,7 @@ ERROR: ld.so: object '%s' cannot be loaded as audit interface: %s; ignored.\n",
 	    }
 
 	  if (l != &GL(dl_rtld_map))
-	    _dl_relocate_object (l, l->l_scope, GLRO(dl_lazy),
+	    _dl_relocate_object (l, l->l_scope, GLRO(dl_lazy) ? RTLD_LAZY : 0,
 				 consider_profiling);
 
 	  /* Add object to slot information data if necessasy.  */
@@ -2238,13 +2258,6 @@ ERROR: ld.so: object '%s' cannot be loaded as audit interface: %s; ignored.\n",
       HP_TIMING_NOW (stop);
 
       HP_TIMING_DIFF (relocate_time, start, stop);
-
-      /* Do any necessary cleanups for the startup OS interface code.
-	 We do these now so that no calls are made after rtld re-relocation
-	 which might be resolved to different functions than we expect.
-	 We cannot do this before relocating the other objects because
-	 _dl_relocate_object might need to call `mprotect' for DT_TEXTREL.  */
-      _dl_sysdep_start_cleanup ();
 
       /* Now enable profiling if needed.  Like the previous call,
 	 this has to go here because the calls it makes should use the
@@ -2300,6 +2313,13 @@ ERROR: ld.so: object '%s' cannot be loaded as audit interface: %s; ignored.\n",
       HP_TIMING_DIFF (add, start, stop);
       HP_TIMING_ACCUM_NT (relocate_time, add);
     }
+
+  /* Do any necessary cleanups for the startup OS interface code.
+     We do these now so that no calls are made after rtld re-relocation
+     which might be resolved to different functions than we expect.
+     We cannot do this before relocating the other objects because
+     _dl_relocate_object might need to call `mprotect' for DT_TEXTREL.  */
+  _dl_sysdep_start_cleanup ();
 
 #ifdef SHARED
   /* Auditing checkpoint: we have added all objects.  */
@@ -2681,10 +2701,10 @@ process_envvars (enum mode *modep)
       while (*nextp != '\0');
 
       if (__access ("/etc/suid-debug", F_OK) != 0)
-        {
+	{
 	  unsetenv ("MALLOC_CHECK_");
 	  GLRO(dl_debug_mask) = 0;
-        }
+	}
 
       if (mode != normal)
 	_exit (5);
@@ -2751,12 +2771,12 @@ print_statistics (hp_timing_t *rtld_total_timep)
 	}
       *wp = '\0';
       _dl_debug_printf ("\
-            time needed for relocation: %s (%s%%)\n", buf, pbuf);
+	    time needed for relocation: %s (%s%%)\n", buf, pbuf);
     }
 #endif
 
   unsigned long int num_relative_relocations = 0;
-  for (Lmid_t ns = 0; ns < DL_NNS; ++ns)
+  for (Lmid_t ns = 0; ns < GL(dl_nns); ++ns)
     {
       if (GL(dl_ns)[ns]._ns_loaded == NULL)
 	continue;
@@ -2814,7 +2834,7 @@ print_statistics (hp_timing_t *rtld_total_timep)
 	}
       *wp = '\0';
       _dl_debug_printf ("\
-           time needed to load objects: %s (%s%%)\n",
+	   time needed to load objects: %s (%s%%)\n",
 				buf, pbuf);
     }
 #endif

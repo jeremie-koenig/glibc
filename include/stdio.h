@@ -80,7 +80,8 @@ extern int __path_search (char *__tmpl, size_t __tmpl_len,
 			  __const char *__dir, __const char *__pfx,
 			  int __try_tempdir);
 
-extern int __gen_tempname (char *__tmpl, int __flags, int __kind);
+extern int __gen_tempname (char *__tmpl, int __suffixlen, int __flags,
+			   int __kind);
 /* The __kind argument to __gen_tempname may be one of: */
 #  define __GT_FILE	0	/* create a file */
 #  define __GT_DIR	1	/* create a directory */
@@ -90,7 +91,8 @@ extern int __gen_tempname (char *__tmpl, int __flags, int __kind);
 extern void __libc_fatal (__const char *__message)
      __attribute__ ((__noreturn__));
 extern void __libc_message (int do_abort, __const char *__fnt, ...);
-extern void __fortify_fail (const char *msg) __attribute__ ((noreturn));
+extern void __fortify_fail (const char *msg)
+     __attribute__ ((__noreturn__)) internal_function;
 libc_hidden_proto (__fortify_fail)
 
 /* Acquire ownership of STREAM.  */
@@ -147,11 +149,13 @@ libc_hidden_proto (fileno)
 libc_hidden_proto (fwrite)
 libc_hidden_proto (fseek)
 libc_hidden_proto (ftello)
+libc_hidden_proto (fflush)
 libc_hidden_proto (fflush_unlocked)
 libc_hidden_proto (fread_unlocked)
 libc_hidden_proto (fwrite_unlocked)
 libc_hidden_proto (fgets_unlocked)
 libc_hidden_proto (fputs_unlocked)
+libc_hidden_proto (fmemopen)
 libc_hidden_proto (open_memstream)
 libc_hidden_proto (__libc_fatal)
 libc_hidden_proto (__vsprintf_chk)

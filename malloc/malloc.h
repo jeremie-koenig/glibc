@@ -1,5 +1,5 @@
 /* Prototypes and definition for malloc implementation.
-   Copyright (C) 1996, 1997, 1999, 2000, 2002-2004, 2005, 2007
+   Copyright (C) 1996, 1997, 1999, 2000, 2002-2004, 2005, 2007, 2009
    Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -23,6 +23,7 @@
 
 #include <features.h>
 #include <stddef.h>
+#include <stdio.h>
 # define __malloc_ptr_t  void *
 
 /* Used by GNU libc internals. */
@@ -127,6 +128,8 @@ extern struct mallinfo mallinfo __MALLOC_P ((void));
 #define M_MMAP_MAX          -4
 #define M_CHECK_ACTION      -5
 #define M_PERTURB	    -6
+#define M_ARENA_TEST	    -7
+#define M_ARENA_MAX	    -8
 
 /* General SVID/XPG interface to tunable parameters. */
 extern int mallopt __MALLOC_P ((int __param, int __val));
@@ -141,6 +144,9 @@ extern size_t malloc_usable_size __MALLOC_P ((void *__ptr));
 
 /* Prints brief summary statistics on stderr. */
 extern void malloc_stats __MALLOC_P ((void));
+
+/* Output information about state of allocator to stream FP.  */
+extern int malloc_info (int __options, FILE *__fp);
 
 /* Record the state of all malloc variables in an opaque data structure. */
 extern void *malloc_get_state __MALLOC_P ((void));

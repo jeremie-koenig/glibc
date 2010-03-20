@@ -1,5 +1,5 @@
 /* Handle special requests.
-   Copyright (C) 1996, 1997, 1999, 2005 Free Software Foundation, Inc.
+   Copyright (C) 1996, 1997, 1999, 2005, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@gnu.ai.mit.edu>, 1996.
 
@@ -21,6 +21,8 @@
 # include <config.h>
 #endif
 
+#include <error.h>
+#include <libintl.h>
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
@@ -124,4 +126,7 @@ locale_special (const char *name, int show_category_name,
       return;
     }
 #endif
+
+  /* If nothing matches, fail.  */
+  error (1, 0, gettext ("unknown name \"%s\""), name);
 }
