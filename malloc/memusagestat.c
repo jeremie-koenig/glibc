@@ -1,5 +1,6 @@
 /* Generate graphic from memory profiling data.
-   Copyright (C) 1998, 1999, 2000, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2005, 2006,
+   2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@cygnus.com>, 1998.
 
@@ -38,6 +39,8 @@
 #include <gdfontl.h>
 #include <gdfonts.h>
 
+#include "../version.h"
+#define PACKAGE _libc_intl_domainname
 
 /* Default size of the generated image.  */
 #define XSIZE 800
@@ -72,6 +75,10 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state);
 
 /* Function to print some extra text in the help message.  */
 static char *more_help (int key, const char *text, void *input);
+
+/* Name and version of program.  */
+static void print_version (FILE *stream, struct argp_state *state);
+void (*argp_program_version_hook) (FILE *, struct argp_state *) = print_version;
 
 /* Data structure to communicate with argp functions.  */
 static struct argp argp =
@@ -174,7 +181,7 @@ main (int argc, char *argv[])
       || st.st_size < 2 * sizeof (struct entry))
     {
       close (fd);
-      error (EXIT_FAILURE, 0, "input file as incorrect size");
+      error (EXIT_FAILURE, 0, "input file has incorrect size");
     }
   /* Compute number of data entries.  */
   total = st.st_size / sizeof (struct entry) - 2;
@@ -184,13 +191,6 @@ main (int argc, char *argv[])
   maxsize_heap = headent[1].heap;
   maxsize_stack = headent[1].stack;
   maxsize_total = headent[0].stack;
-  if (also_total)
-    {
-      /* We use one scale and since we also draw the total amount of
-	 memory used we have to adapt the maximum.  */
-      maxsize_heap = maxsize_total;
-      maxsize_stack = maxsize_total;
-    }
 
   if (maxsize_heap == 0 && maxsize_stack == 0)
     {
@@ -203,18 +203,31 @@ main (int argc, char *argv[])
 	{
 	  if (read (fd, &next, sizeof (next)) == 0)
 	    break;
-	  if (next.heap > headent[1].heap)
-	    headent[1].heap = next.heap;
-	  if (next.stack > headent[1].stack)
-	    headent[1].stack = next.stack;
+	  if (next.heap > maxsize_heap)
+	    maxsize_heap = next.heap;
+	  if (next.stack > maxsize_stack)
+	    maxsize_stack = next.stack;
+	  if (maxsize_heap + maxsize_stack > maxsize_total)
+	    maxsize_total = maxsize_heap + maxsize_stack;
 	}
 
+      headent[0].stack = maxsize_total;
+      headent[1].heap = maxsize_heap;
+      headent[1].stack = maxsize_stack;
       headent[1].time_low = next.time_low;
       headent[1].time_high = next.time_high;
 
       /* Write the computed values in the file.  */
-      lseek (fd, sizeof (struct entry), SEEK_SET);
-      write (fd, &headent[1], sizeof (struct entry));
+      lseek (fd, 0, SEEK_SET);
+      write (fd, headent, 2 * sizeof (struct entry));
+    }
+
+  if (also_total)
+    {
+      /* We use one scale and since we also draw the total amount of
+	 memory used we have to adapt the maximum.  */
+      maxsize_heap = maxsize_total;
+      maxsize_stack = maxsize_total;
     }
 
   start_time = ((uint64_t) headent[0].time_high) << 32 | headent[0].time_low;
@@ -534,4 +547,17 @@ For bug reporting instructions, please see:\n\
       break;
     }
   return (char *) text;
+}
+
+/* Print the version information.  */
+static void
+print_version (FILE *stream, struct argp_state *state)
+{
+  fprintf (stream, "memusagestat (GNU %s) %s\n", PACKAGE, VERSION);
+  fprintf (stream, gettext ("\
+Copyright (C) %s Free Software Foundation, Inc.\n\
+This is free software; see the source for copying conditions.  There is NO\n\
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
+"), "2009");
+  fprintf (stream, gettext ("Written by %s.\n"), "Ulrich Drepper");
 }

@@ -1,4 +1,4 @@
-# Copyright (C) 1991-1999, 2000-2006, 2007 Free Software Foundation, Inc.
+# Copyright (C) 1991-1999, 2000-2006, 2007, 2009 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -43,7 +43,7 @@ routines :=								      \
 	wait waitpid wait3 wait4 waitid					      \
 	alarm sleep pause nanosleep					      \
 	fork vfork _exit						      \
-	execve fexecve execv execle execl execvp execlp			      \
+	execve fexecve execv execle execl execvp execlp execvpe		      \
 	getpid getppid							      \
 	getuid geteuid getgid getegid getgroups setuid setgid group_member    \
 	getpgid setpgid getpgrp bsd-getpgrp setpgrp getsid setsid	      \
@@ -82,6 +82,7 @@ tests		:= tstgetopt testfnm runtests runptests	     \
 		   bug-regex17 bug-regex18 bug-regex19 bug-regex20 \
 		   bug-regex21 bug-regex22 bug-regex23 bug-regex24 \
 		   bug-regex25 bug-regex26 bug-regex27 bug-regex28 \
+		   bug-regex29 bug-regex30 \
 		   tst-nice tst-nanosleep tst-regex2 \
 		   transbug tst-rxspencer tst-pcre tst-boost \
 		   bug-ga1 tst-vfork1 tst-vfork2 tst-vfork3 tst-waitid \
@@ -194,6 +195,7 @@ bug-regex22-ENV = LOCPATH=$(common-objpfx)localedata
 bug-regex23-ENV = LOCPATH=$(common-objpfx)localedata
 bug-regex25-ENV = LOCPATH=$(common-objpfx)localedata
 bug-regex26-ENV = LOCPATH=$(common-objpfx)localedata
+bug-regex30-ENV = LOCPATH=$(common-objpfx)localedata
 tst-rxspencer-ARGS = --utf8 rxspencer/tests
 tst-rxspencer-ENV = LOCPATH=$(common-objpfx)localedata
 tst-pcre-ARGS = PCRE.tests
@@ -304,7 +306,11 @@ $(inst_libexecdir)/getconf: $(inst_bindir)/getconf \
 $(objpfx)getconf.speclist: $(objpfx)getconf
 ifeq (no,$(cross-compiling))
 	LC_ALL=C GETCONF_DIR=/dev/null \
-	$(run-program-prefix) $< _POSIX_V6_WIDTH_RESTRICTED_ENVS > $@.new
+	$(run-program-prefix) $< _POSIX_V7_WIDTH_RESTRICTED_ENVS > $@.new
+	LC_ALL=C GETCONF_DIR=/dev/null \
+	$(run-program-prefix) $< _POSIX_V6_WIDTH_RESTRICTED_ENVS >> $@.new
+	LC_ALL=C GETCONF_DIR=/dev/null \
+	$(run-program-prefix) $< _XBS5_WIDTH_RESTRICTED_ENVS >> $@.new
 else
 	> $@.new
 endif
