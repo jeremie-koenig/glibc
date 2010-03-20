@@ -1,4 +1,4 @@
-/* Copyright (C) 1992, 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2009
+/* Copyright (C) 1992, 1995-2002, 2009, 2010
    Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -17,9 +17,12 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-#ifndef _SYS_STAT_H
+#if !defined _SYS_STAT_H && !defined _FCNTL_H
 # error "Never include <bits/stat.h> directly; use <sys/stat.h> instead."
 #endif
+
+#ifndef _BITS_STAT_H
+#define _BITS_STAT_H	1
 
 #include <bits/wordsize.h>
 
@@ -69,7 +72,7 @@ struct stat
 # else
     __blkcnt64_t st_blocks;		/* Number 512-byte blocks allocated. */
 # endif
-#ifdef __USE_MISC
+# if defined __USE_MISC || defined __USE_XOPEN2K8
     /* Nanosecond resolution timestamps are stored in a format
        equivalent to 'struct timespec'.  This is the type used
        whenever possible but the Unix namespace rules do not allow the
@@ -79,17 +82,17 @@ struct stat
     struct timespec st_atim;		/* Time of last access.  */
     struct timespec st_mtim;		/* Time of last modification.  */
     struct timespec st_ctim;		/* Time of last status change.  */
-# define st_atime st_atim.tv_sec	/* Backward compatibility.  */
-# define st_mtime st_mtim.tv_sec
-# define st_ctime st_ctim.tv_sec
-#else
+#  define st_atime st_atim.tv_sec	/* Backward compatibility.  */
+#  define st_mtime st_mtim.tv_sec
+#  define st_ctime st_ctim.tv_sec
+# else
     __time_t st_atime;			/* Time of last access.  */
     unsigned long int st_atimensec;	/* Nscecs of last access.  */
     __time_t st_mtime;			/* Time of last modification.  */
     unsigned long int st_mtimensec;	/* Nsecs of last modification.  */
     __time_t st_ctime;			/* Time of last status change.  */
     unsigned long int st_ctimensec;	/* Nsecs of last status change.  */
-#endif
+# endif
     unsigned long int __unused4;
     unsigned long int __unused5;
   };
@@ -109,7 +112,7 @@ struct stat64
     __off64_t st_size;			/* Size of file, in bytes.  */
     __blksize_t st_blksize;		/* Optimal block size for I/O.  */
     __blkcnt64_t st_blocks;		/* Number 512-byte blocks allocated. */
-#ifdef __USE_MISC
+#  if defined __USE_MISC || defined __USE_XOPEN2K8
     /* Nanosecond resolution timestamps are stored in a format
        equivalent to 'struct timespec'.  This is the type used
        whenever possible but the Unix namespace rules do not allow the
@@ -119,17 +122,17 @@ struct stat64
     struct timespec st_atim;		/* Time of last access.  */
     struct timespec st_mtim;		/* Time of last modification.  */
     struct timespec st_ctim;		/* Time of last status change.  */
-# define st_atime st_atim.tv_sec	/* Backward compatibility.  */
-# define st_mtime st_mtim.tv_sec
-# define st_ctime st_ctim.tv_sec
-#else
+#   define st_atime st_atim.tv_sec	/* Backward compatibility.  */
+#   define st_mtime st_mtim.tv_sec
+#   define st_ctime st_ctim.tv_sec
+#  else
     __time_t st_atime;			/* Time of last access.  */
     unsigned long int st_atimensec;	/* Nscecs of last access.  */
     __time_t st_mtime;			/* Time of last modification.  */
     unsigned long int st_mtimensec;	/* Nsecs of last modification.  */
     __time_t st_ctime;			/* Time of last status change.  */
     unsigned long int st_ctimensec;	/* Nsecs of last status change.  */
-#endif
+#  endif
     unsigned long int __unused4;
     unsigned long int __unused5;
   };
@@ -163,7 +166,7 @@ struct stat
 # else
     __blkcnt64_t st_blocks;		/* Number 512-byte blocks allocated. */
 # endif
-#ifdef __USE_MISC
+# if defined __USE_MISC || defined __USE_XOPEN2K8
     /* Nanosecond resolution timestamps are stored in a format
        equivalent to 'struct timespec'.  This is the type used
        whenever possible but the Unix namespace rules do not allow the
@@ -173,17 +176,17 @@ struct stat
     struct timespec st_atim;		/* Time of last access.  */
     struct timespec st_mtim;		/* Time of last modification.  */
     struct timespec st_ctim;		/* Time of last status change.  */
-# define st_atime st_atim.tv_sec	/* Backward compatibility.  */
-# define st_mtime st_mtim.tv_sec
-# define st_ctime st_ctim.tv_sec
-#else
+#  define st_atime st_atim.tv_sec	/* Backward compatibility.  */
+#  define st_mtime st_mtim.tv_sec
+#  define st_ctime st_ctim.tv_sec
+# else
     __time_t st_atime;			/* Time of last access.  */
     unsigned long int st_atimensec;	/* Nscecs of last access.  */
     __time_t st_mtime;			/* Time of last modification.  */
     unsigned long int st_mtimensec;	/* Nsecs of last modification.  */
     __time_t st_ctime;			/* Time of last status change.  */
     unsigned long int st_ctimensec;	/* Nsecs of last status change.  */
-#endif
+# endif
     unsigned long int __unused4;
     unsigned long int __unused5;
     unsigned long int __unused6;
@@ -203,7 +206,7 @@ struct stat64
     __off64_t st_size;			/* Size of file, in bytes.  */
     __blksize_t st_blksize;		/* Optimal block size for I/O.  */
     __blkcnt64_t st_blocks;		/* Number 512-byte blocks allocated. */
-#ifdef __USE_MISC
+#  if defined __USE_MISC || defined __USE_XOPEN2K8
     /* Nanosecond resolution timestamps are stored in a format
        equivalent to 'struct timespec'.  This is the type used
        whenever possible but the Unix namespace rules do not allow the
@@ -213,17 +216,17 @@ struct stat64
     struct timespec st_atim;		/* Time of last access.  */
     struct timespec st_mtim;		/* Time of last modification.  */
     struct timespec st_ctim;		/* Time of last status change.  */
-# define st_atime st_atim.tv_sec	/* Backward compatibility.  */
-# define st_mtime st_mtim.tv_sec
-# define st_ctime st_ctim.tv_sec
-#else
+#   define st_atime st_atim.tv_sec	/* Backward compatibility.  */
+#   define st_mtime st_mtim.tv_sec
+#   define st_ctime st_ctim.tv_sec
+#  else
     __time_t st_atime;			/* Time of last access.  */
     unsigned long int st_atimensec;	/* Nscecs of last access.  */
     __time_t st_mtime;			/* Time of last modification.  */
     unsigned long int st_mtimensec;	/* Nsecs of last modification.  */
     __time_t st_ctime;			/* Time of last status change.  */
     unsigned long int st_ctimensec;	/* Nsecs of last status change.  */
-#endif
+#  endif
     unsigned long int __unused4;
     unsigned long int __unused5;
     unsigned long int __unused6;
@@ -270,3 +273,5 @@ struct stat64
 # define UTIME_NOW	((1l << 30) - 1l)
 # define UTIME_OMIT	((1l << 30) - 2l)
 #endif
+
+#endif	/* bits/stat.h */
