@@ -32,11 +32,7 @@ END LC_IDENTIFICATION
 
 %%%%%%%%%%%%%
 LC_CTYPE
-copy "i18n"
-
-translit_start
-include "translit_combining";""
-translit_end
+copy "bn_BD"
 END LC_CTYPE
 
 %%%%%%%%%%%%%

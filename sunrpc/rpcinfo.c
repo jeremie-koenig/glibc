@@ -1,45 +1,37 @@
-
-/* @(#)rpcinfo.c        2.2 88/08/11 4.0 RPCSRC */
-#if !defined(lint) && defined (SCCSID)
-static char sccsid[] = "@(#)rpcinfo.c 1.22 87/08/12 SMI";
-#endif
-
 /*
  * Copyright (C) 1986, Sun Microsystems, Inc.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ *       copyright notice, this list of conditions and the following
+ *       disclaimer in the documentation and/or other materials
+ *       provided with the distribution.
+ *     * Neither the name of Sun Microsystems, Inc. nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ *
+ *   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *   "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *   LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+ *   FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+ *   COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+ *   INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ *   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ *   GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ *   WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ *   NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
 /*
  * rpcinfo: ping a particular rpc program
  *     or dump the portmapper
- */
-
-/*
- * Sun RPC is a product of Sun Microsystems, Inc. and is provided for
- * unrestricted use provided that this legend is included on all tape
- * media and as a part of the software program in whole or part.  Users
- * may copy or modify Sun RPC without charge, but are not authorized
- * to license or distribute it to anyone else except as part of a product or
- * program developed by the user.
- *
- * SUN RPC IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING THE
- * WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- *
- * Sun RPC is provided with no support and without any obligation on the
- * part of Sun Microsystems, Inc. to assist in its use, correction,
- * modification or enhancement.
- *
- * SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT TO THE
- * INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY SUN RPC
- * OR ANY PART THEREOF.
- *
- * In no event will Sun Microsystems, Inc. be liable for any lost revenue
- * or profits or other special, indirect and consequential damages, even if
- * Sun has been advised of the possibility of such damages.
- *
- * Sun Microsystems, Inc.
- * 2550 Garcia Avenue
- * Mountain View, California  94043
  */
 
 #include <getopt.h>
@@ -58,6 +50,9 @@ static char sccsid[] = "@(#)rpcinfo.c 1.22 87/08/12 SMI";
 #include <locale.h>
 #include <libintl.h>
 
+#include "../version.h"
+#define PACKAGE _libc_intl_domainname
+
 #define MAXHOSTLEN 256
 
 #define	MIN_VERS	((u_long) 0)
@@ -70,7 +65,8 @@ static void pmapdump (int argc, char **argv);
 static bool_t reply_proc (void *res, struct sockaddr_in *who);
 static void brdcst (int argc, char **argv) __attribute__ ((noreturn));
 static void deletereg (int argc, char **argv);
-static void usage (void);
+static void usage (FILE *stream);
+static void print_version (void);
 static u_long getprognum (char *arg);
 static u_long getvers (char *arg);
 static void get_inet_address (struct sockaddr_in *addr, char *host);
@@ -92,6 +88,11 @@ main (int argc, char **argv)
   int errflg;
   int function;
   u_short portnum;
+  static const struct option long_options[] = {
+    { "help", no_argument, NULL, 'H' },
+    { "version", no_argument, NULL, 'V' },
+    { NULL, 0, NULL, 0 }
+  };
 
   setlocale (LC_ALL, "");
   textdomain (_libc_intl_domainname);
@@ -99,7 +100,7 @@ main (int argc, char **argv)
   function = NONE;
   portnum = 0;
   errflg = 0;
-  while ((c = getopt (argc, argv, "ptubdn:")) != -1)
+  while ((c = getopt_long (argc, argv, "ptubdn:", long_options, NULL)) != -1)
     {
       switch (c)
 	{
@@ -143,6 +144,14 @@ main (int argc, char **argv)
 	    function = DELETES;
 	  break;
 
+	case 'H':
+	  usage (stdout);
+	  return 0;
+
+	case 'V':
+	  print_version ();
+	  return 0;
+
 	case '?':
 	  errflg = 1;
 	}
@@ -150,7 +159,7 @@ main (int argc, char **argv)
 
   if (errflg || function == NONE)
     {
-      usage ();
+      usage (stderr);
       return 1;
     }
 
@@ -160,7 +169,7 @@ main (int argc, char **argv)
     case PMAPDUMP:
       if (portnum != 0)
 	{
-	  usage ();
+	  usage (stderr);
 	  return 1;
 	}
       pmapdump (argc - optind, argv + optind);
@@ -177,7 +186,7 @@ main (int argc, char **argv)
     case BRDCST:
       if (portnum != 0)
 	{
-	  usage ();
+	  usage (stderr);
 	  return 1;
 	}
       brdcst (argc - optind, argv + optind);
@@ -208,7 +217,7 @@ udpping (portnum, argc, argv)
 
   if (argc < 2 || argc > 3)
     {
-      usage ();
+      usage (stderr);
       exit (1);
     }
   prognum = getprognum (argv[1]);
@@ -363,7 +372,7 @@ tcpping (portnum, argc, argv)
 
   if (argc < 2 || argc > 3)
     {
-      usage ();
+      usage (stderr);
       exit (1);
     }
   prognum = getprognum (argv[1]);
@@ -532,7 +541,7 @@ pmapdump (argc, argv)
 
   if (argc > 1)
     {
-      usage ();
+      usage (stderr);
       exit (1);
     }
   if (argc == 1)
@@ -624,7 +633,7 @@ brdcst (argc, argv)
 
   if (argc != 2)
     {
-      usage ();
+      usage (stderr);
       exit (1);
     }
   prognum = getprognum (argv[0]);
@@ -650,7 +659,7 @@ deletereg (argc, argv)
 
   if (argc != 2)
     {
-      usage ();
+      usage (stderr);
       exit (1);
     }
   if (getuid ())
@@ -669,15 +678,25 @@ deletereg (argc, argv)
 }
 
 static void
-usage ()
+usage (FILE *stream)
 {
   fputs (_("Usage: rpcinfo [ -n portnum ] -u host prognum [ versnum ]\n"),
-	 stderr);
+	 stream);
   fputs (_("       rpcinfo [ -n portnum ] -t host prognum [ versnum ]\n"),
-	 stderr);
-  fputs (_("       rpcinfo -p [ host ]\n"), stderr);
-  fputs (_("       rpcinfo -b prognum versnum\n"), stderr);
-  fputs (_("       rpcinfo -d prognum versnum\n"), stderr);
+	 stream);
+  fputs (_("       rpcinfo -p [ host ]\n"), stream);
+  fputs (_("       rpcinfo -b prognum versnum\n"), stream);
+  fputs (_("       rpcinfo -d prognum versnum\n"), stream);
+  fputc ('\n', stream);
+  fputs (_("\
+For bug reporting instructions, please see:\n\
+<http://www.gnu.org/software/libc/bugs.html>.\n"), stream);
+}
+
+static void
+print_version (void)
+{
+  printf ("rpcinfo (GNU %s) %s\n", PACKAGE, VERSION);
 }
 
 static u_long

@@ -1,5 +1,5 @@
 /* Look up a symbol in a shared object loaded by `dlopen'.
-   Copyright (C) 1999-2002,2004,2006,2007 Free Software Foundation, Inc.
+   Copyright (C) 1999-2002,2004,2006,2007,2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -95,7 +95,7 @@ do_sym (void *handle, const char *name, void *who,
   struct link_map *match = GL(dl_ns)[LM_ID_BASE]._ns_loaded;
 
   /* Find the highest-addressed object that CALLER is not below.  */
-  for (Lmid_t ns = 0; ns < DL_NNS; ++ns)
+  for (Lmid_t ns = 0; ns < GL(dl_nns); ++ns)
     for (struct link_map *l = GL(dl_ns)[ns]._ns_loaded; l != NULL;
 	 l = l->l_next)
       if (caller >= l->l_map_start && caller < l->l_map_end
@@ -190,6 +190,16 @@ RTLD_NEXT used in code not dynamically loaded"));
       else
 #endif
 	value = DL_SYMBOL_ADDRESS (result, ref);
+
+      /* Resolve indirect function address.  */
+      if (__builtin_expect (ELFW(ST_TYPE) (ref->st_info) == STT_GNU_IFUNC, 0))
+	{
+	  DL_FIXUP_VALUE_TYPE fixup
+	    = DL_FIXUP_MAKE_VALUE (result, (ElfW(Addr)) value);
+	  fixup =
+	    ((DL_FIXUP_VALUE_TYPE (*) (void)) DL_FIXUP_VALUE_ADDR (fixup)) ();
+	  value = (void *) DL_FIXUP_VALUE_CODE_ADDR (fixup);
+	}
 
 #ifdef SHARED
       /* Auditing checkpoint: we have a new binding.  Provide the
