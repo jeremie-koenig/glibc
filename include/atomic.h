@@ -1,5 +1,5 @@
 /* Internal macros for atomic operations for GNU C Library.
-   Copyright (C) 2002, 2003, 2004, 2005, 2006 Free Software Foundation, Inc.
+   Copyright (C) 2002-2006, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@redhat.com>, 2002.
 
@@ -95,25 +95,31 @@
 #endif
 
 
-#if !defined catomic_compare_and_exchange_val_acq \
-    && defined __arch_c_compare_and_exchange_val_32_acq
-# define catomic_compare_and_exchange_val_acq(mem, newval, oldval) \
+#ifndef catomic_compare_and_exchange_val_acq
+# ifdef __arch_c_compare_and_exchange_val_32_acq
+#  define catomic_compare_and_exchange_val_acq(mem, newval, oldval) \
   __atomic_val_bysize (__arch_c_compare_and_exchange_val,acq,		      \
 		       mem, newval, oldval)
-#else
-# define catomic_compare_and_exchange_val_acq(mem, newval, oldval) \
+# else
+#  define catomic_compare_and_exchange_val_acq(mem, newval, oldval) \
   atomic_compare_and_exchange_val_acq (mem, newval, oldval)
+# endif
+#endif
+
+
+#ifndef catomic_compare_and_exchange_val_rel
+# ifndef atomic_compare_and_exchange_val_rel
+#  define catomic_compare_and_exchange_val_rel(mem, newval, oldval)	      \
+  catomic_compare_and_exchange_val_acq (mem, newval, oldval)
+# else
+#  define catomic_compare_and_exchange_val_rel(mem, newval, oldval)	      \
+  atomic_compare_and_exchange_val_rel (mem, newval, oldval)
+# endif
 #endif
 
 
 #ifndef atomic_compare_and_exchange_val_rel
 # define atomic_compare_and_exchange_val_rel(mem, newval, oldval)	      \
-  atomic_compare_and_exchange_val_acq (mem, newval, oldval)
-#endif
-
-
-#ifndef catomic_compare_and_exchange_val_rel
-# define catomic_compare_and_exchange_val_rel(mem, newval, oldval)	      \
   atomic_compare_and_exchange_val_acq (mem, newval, oldval)
 #endif
 
@@ -125,8 +131,8 @@
 #  define atomic_compare_and_exchange_bool_acq(mem, newval, oldval) \
   __atomic_bool_bysize (__arch_compare_and_exchange_bool,acq,		      \
 		        mem, newval, oldval)
-#  else
-#   define atomic_compare_and_exchange_bool_acq(mem, newval, oldval) \
+# else
+#  define atomic_compare_and_exchange_bool_acq(mem, newval, oldval) \
   ({ /* Cannot use __oldval here, because macros later in this file might     \
 	call this macro with __oldval argument.	 */			      \
      __typeof (oldval) __atg3_old = (oldval);				      \
@@ -142,8 +148,8 @@
 #  define catomic_compare_and_exchange_bool_acq(mem, newval, oldval) \
   __atomic_bool_bysize (__arch_c_compare_and_exchange_bool,acq,		      \
 		        mem, newval, oldval)
-#  else
-#   define catomic_compare_and_exchange_bool_acq(mem, newval, oldval) \
+# else
+#  define catomic_compare_and_exchange_bool_acq(mem, newval, oldval) \
   ({ /* Cannot use __oldval here, because macros later in this file might     \
 	call this macro with __oldval argument.	 */			      \
      __typeof (oldval) __atg4_old = (oldval);				      \
@@ -154,15 +160,20 @@
 #endif
 
 
-#ifndef atomic_compare_and_exchange_bool_rel
-# define atomic_compare_and_exchange_bool_rel(mem, newval, oldval) \
-  atomic_compare_and_exchange_bool_acq (mem, newval, oldval)
+#ifndef catomic_compare_and_exchange_bool_rel
+# ifndef atomic_compare_and_exchange_bool_rel
+#  define catomic_compare_and_exchange_bool_rel(mem, newval, oldval)	      \
+  catomic_compare_and_exchange_bool_acq (mem, newval, oldval)
+# else
+#  define catomic_compare_and_exchange_bool_rel(mem, newval, oldval)	      \
+  atomic_compare_and_exchange_bool_rel (mem, newval, oldval)
+# endif
 #endif
 
 
-#ifndef catomic_compare_and_exchange_bool_rel
-# define catomic_compare_and_exchange_bool_rel(mem, newval, oldval) \
-  catomic_compare_and_exchange_bool_acq (mem, newval, oldval)
+#ifndef atomic_compare_and_exchange_bool_rel
+# define atomic_compare_and_exchange_bool_rel(mem, newval, oldval) \
+  atomic_compare_and_exchange_bool_acq (mem, newval, oldval)
 #endif
 
 
@@ -412,6 +423,22 @@
 	   (atomic_compare_and_exchange_bool_acq (__atg15_memp,		      \
 						  __atg15_old & __atg15_mask, \
 						  __atg15_old), 0));	      \
+  } while (0)
+#endif
+
+#ifndef catomic_and
+# define catomic_and(mem, mask) \
+  do {									      \
+    __typeof (*(mem)) __atg20_old;					      \
+    __typeof (mem) __atg20_memp = (mem);				      \
+    __typeof (*(mem)) __atg20_mask = (mask);				      \
+									      \
+    do									      \
+      __atg20_old = (*__atg20_memp);					      \
+    while (__builtin_expect						      \
+	   (catomic_compare_and_exchange_bool_acq (__atg20_memp,	      \
+						   __atg20_old & __atg20_mask,\
+						   __atg20_old), 0));	      \
   } while (0)
 #endif
 
