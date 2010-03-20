@@ -1,5 +1,5 @@
 /* Inner loops of cache daemon.
-   Copyright (C) 1998-2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 1998-2007, 2008, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@cygnus.com>, 1998.
 
@@ -109,6 +109,7 @@ struct database_dyn dbs[lastdb] =
   [pwddb] = {
     .lock = PTHREAD_RWLOCK_WRITER_NONRECURSIVE_INITIALIZER_NP,
     .prune_lock = PTHREAD_MUTEX_INITIALIZER,
+    .prune_run_lock = PTHREAD_MUTEX_INITIALIZER,
     .enabled = 0,
     .check_file = 1,
     .persistent = 0,
@@ -129,6 +130,7 @@ struct database_dyn dbs[lastdb] =
   [grpdb] = {
     .lock = PTHREAD_RWLOCK_WRITER_NONRECURSIVE_INITIALIZER_NP,
     .prune_lock = PTHREAD_MUTEX_INITIALIZER,
+    .prune_run_lock = PTHREAD_MUTEX_INITIALIZER,
     .enabled = 0,
     .check_file = 1,
     .persistent = 0,
@@ -149,6 +151,7 @@ struct database_dyn dbs[lastdb] =
   [hstdb] = {
     .lock = PTHREAD_RWLOCK_WRITER_NONRECURSIVE_INITIALIZER_NP,
     .prune_lock = PTHREAD_MUTEX_INITIALIZER,
+    .prune_run_lock = PTHREAD_MUTEX_INITIALIZER,
     .enabled = 0,
     .check_file = 1,
     .persistent = 0,
@@ -169,6 +172,7 @@ struct database_dyn dbs[lastdb] =
   [servdb] = {
     .lock = PTHREAD_RWLOCK_WRITER_NONRECURSIVE_INITIALIZER_NP,
     .prune_lock = PTHREAD_MUTEX_INITIALIZER,
+    .prune_run_lock = PTHREAD_MUTEX_INITIALIZER,
     .enabled = 0,
     .check_file = 1,
     .persistent = 0,
@@ -238,17 +242,13 @@ static int resolv_conf_descr = -1;
 /* Negative if SOCK_CLOEXEC is not supported, positive if it is, zero
    before be know the result.  */
 static int have_sock_cloexec;
-/* The paccept syscall was introduced at the same time as SOCK_CLOEXEC.  */
-# define have_paccept -1	// XXX For the time being there is no such call
+#endif
+#ifndef __ASSUME_ACCEPT4
+static int have_accept4;
 #endif
 
 /* Number of times clients had to wait.  */
 unsigned long int client_queued;
-
-/* Data structure for recording in-flight memory allocation.  */
-__thread struct mem_in_flight mem_in_flight attribute_tls_model_ie;
-/* Global list of the mem_in_flight variables of all the threads.  */
-struct mem_in_flight *mem_in_flight_list;
 
 
 ssize_t
@@ -642,6 +642,9 @@ cannot create read-only descriptor for \"%s\"; no mmap"),
 		if (fd != -1)
 		  close (fd);
 	      }
+	    else if (errno == EACCES)
+	      error (EXIT_FAILURE, 0, _("cannot access '%s'"),
+		     dbs[cnt].db_filename);
 	  }
 
 	if (dbs[cnt].head == NULL)
@@ -975,9 +978,9 @@ invalidate_cache (char *key, int fd)
 
   if (dbs[number].enabled)
     {
-      pthread_mutex_lock (&dbs[number].prune_lock);
+      pthread_mutex_lock (&dbs[number].prune_run_lock);
       prune_cache (&dbs[number], LONG_MAX, fd);
-      pthread_mutex_unlock (&dbs[number].prune_lock);
+      pthread_mutex_unlock (&dbs[number].prune_run_lock);
     }
   else
     {
@@ -1020,7 +1023,8 @@ send_ro_fd (struct database_dyn *db, char *key, int fd)
   cmsg->cmsg_type = SCM_RIGHTS;
   cmsg->cmsg_len = CMSG_LEN (sizeof (int));
 
-  *(int *) CMSG_DATA (cmsg) = db->ro_fd;
+  int *ip = (int *) CMSG_DATA (cmsg);
+  *ip = db->ro_fd;
 
   msg.msg_controllen = cmsg->cmsg_len;
 
@@ -1415,6 +1419,20 @@ cannot change to old working directory: %s; disabling paranoia mode"),
       }
 
   /* The preparations are done.  */
+#ifdef PATH_MAX
+  char pathbuf[PATH_MAX];
+#else
+  char pathbuf[256];
+#endif
+  /* Try to exec the real nscd program so the process name (as reported
+     in /proc/PID/status) will be 'nscd', but fall back to /proc/self/exe
+     if readlink or the exec with the result of the readlink call fails.  */
+  ssize_t n = readlink ("/proc/self/exe", pathbuf, sizeof (pathbuf) - 1);
+  if (n != -1)
+    {
+      pathbuf[n] = '\0';
+      execv (pathbuf, argv);
+    }
   execv ("/proc/self/exe", argv);
 
   /* If we come here, we will never be able to re-exec.  */
@@ -1492,6 +1510,7 @@ nscd_run_prune (void *p)
   dbs[my_number].wakeup_time = now + CACHE_PRUNE_INTERVAL + my_number;
 
   pthread_mutex_t *prune_lock = &dbs[my_number].prune_lock;
+  pthread_mutex_t *prune_run_lock = &dbs[my_number].prune_run_lock;
   pthread_cond_t *prune_cond = &dbs[my_number].prune_cond;
 
   pthread_mutex_lock (prune_lock);
@@ -1525,7 +1544,12 @@ nscd_run_prune (void *p)
 
 	  pthread_mutex_unlock (prune_lock);
 
+	  /* We use a separate lock for running the prune function (instead
+	     of keeping prune_lock locked) because this enables concurrent
+	     invocations of cache_add which might modify the timeout value.  */
+	  pthread_mutex_lock (prune_run_lock);
 	  next_wait = prune_cache (&dbs[my_number], prune_now, -1);
+	  pthread_mutex_unlock (prune_run_lock);
 
 	  next_wait = MAX (next_wait, CACHE_PRUNE_INTERVAL);
 	  /* If clients cannot determine for sure whether nscd is running
@@ -1570,16 +1594,6 @@ nscd_run_worker (void *p)
 {
   char buf[256];
 
-  /* Initialize the memory-in-flight list.  */
-  for (enum in_flight idx = 0; idx < IDX_last; ++idx)
-    mem_in_flight.block[idx].dbidx = -1;
-  /* And queue this threads structure.  */
-  do
-    mem_in_flight.next = mem_in_flight_list;
-  while (atomic_compare_and_exchange_bool_acq (&mem_in_flight_list,
-					       &mem_in_flight,
-					       mem_in_flight.next) != 0);
-
   /* Initial locking.  */
   pthread_mutex_lock (&readylist_lock);
 
@@ -1609,8 +1623,8 @@ nscd_run_worker (void *p)
       /* We are done with the list.  */
       pthread_mutex_unlock (&readylist_lock);
 
-#ifndef __ASSUME_SOCK_CLOEXEC
-      if (have_sock_cloexec < 0)
+#ifndef __ASSUME_ACCEPT4
+      if (have_accept4 < 0)
 	{
 	  /* We do not want to block on a short read or so.  */
 	  int fl = fcntl (fd, F_GETFL);
@@ -1705,6 +1719,7 @@ handle_request: request received (Version = %d)"), req.version);
       /* One more thread available.  */
       ++nready;
     }
+  /* NOTREACHED */
 }
 
 
@@ -1819,22 +1834,20 @@ main_loop_poll (void)
 	      /* We have a new incoming connection.  Accept the connection.  */
 	      int fd;
 
-#ifndef __ASSUME_PACCEPT
+#ifndef __ASSUME_ACCEPT4
 	      fd = -1;
-	      if (have_paccept >= 0)
+	      if (have_accept4 >= 0)
 #endif
 		{
-#if 0
-		  fd = TEMP_FAILURE_RETRY (paccept (sock, NULL, NULL, NULL,
+		  fd = TEMP_FAILURE_RETRY (accept4 (sock, NULL, NULL,
 						    SOCK_NONBLOCK));
-#ifndef __ASSUME_PACCEPT
-		  if (have_paccept == 0)
-		    have_paccept = fd != -1 || errno != ENOSYS ? 1 : -1;
-#endif
+#ifndef __ASSUME_ACCEPT4
+		  if (have_accept4 == 0)
+		    have_accept4 = fd != -1 || errno != ENOSYS ? 1 : -1;
 #endif
 		}
-#ifndef __ASSUME_PACCEPT
-	      if (have_paccept < 0)
+#ifndef __ASSUME_ACCEPT4
+	      if (have_accept4 < 0)
 		fd = TEMP_FAILURE_RETRY (accept (sock, NULL, NULL));
 #endif
 
@@ -2000,7 +2013,7 @@ main_loop_epoll (int efd)
     /* We cannot use epoll.  */
     return;
 
-#ifdef HAVE_INOTIFY
+# ifdef HAVE_INOTIFY
   if (inotify_fd != -1)
     {
       ev.events = EPOLLRDNORM;
@@ -2010,7 +2023,7 @@ main_loop_epoll (int efd)
 	return;
       nused = 2;
     }
-#endif
+# endif
 
   while (1)
     {
@@ -2025,8 +2038,26 @@ main_loop_epoll (int efd)
 	if (revs[cnt].data.fd == sock)
 	  {
 	    /* A new connection.  */
-	    int fd = TEMP_FAILURE_RETRY (accept (sock, NULL, NULL));
+	    int fd;
 
+# ifndef __ASSUME_ACCEPT4
+	    fd = -1;
+	    if (have_accept4 >= 0)
+# endif
+	      {
+		fd = TEMP_FAILURE_RETRY (accept4 (sock, NULL, NULL,
+						  SOCK_NONBLOCK));
+# ifndef __ASSUME_ACCEPT4
+		if (have_accept4 == 0)
+		  have_accept4 = fd != -1 || errno != ENOSYS ? 1 : -1;
+# endif
+	      }
+# ifndef __ASSUME_ACCEPT4
+	    if (have_accept4 < 0)
+	      fd = TEMP_FAILURE_RETRY (accept (sock, NULL, NULL));
+# endif
+
+	    /* Use the descriptor if we have not reached the limit.  */
 	    if (fd >= 0)
 	      {
 		/* Try to add the  new descriptor.  */
@@ -2048,7 +2079,7 @@ main_loop_epoll (int efd)
 		  }
 	      }
 	  }
-#ifdef HAVE_INOTIFY
+# ifdef HAVE_INOTIFY
 	else if (revs[cnt].data.fd == inotify_fd)
 	  {
 	    bool to_clear[lastdb] = { false, };
@@ -2104,7 +2135,7 @@ main_loop_epoll (int efd)
 		  pthread_cond_signal (&dbs[dbcnt].prune_cond);
 		}
 	  }
-#endif
+# endif
 	else
 	  {
 	    /* Remove the descriptor from the epoll descriptor.  */

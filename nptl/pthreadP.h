@@ -1,4 +1,4 @@
-/* Copyright (C) 2002,2003,2004,2005,2006,2007 Free Software Foundation, Inc.
+/* Copyright (C) 2002-2007, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@redhat.com>, 2002.
 
@@ -247,6 +247,7 @@ hidden_proto (__pthread_register_cancel)
 hidden_proto (__pthread_unregister_cancel)
 # ifdef SHARED
 extern void attribute_hidden pthread_cancel_init (void);
+extern void __unwind_freeres (void);
 # endif
 #endif
 
@@ -417,6 +418,8 @@ extern int __pthread_mutex_lock_internal (pthread_mutex_t *__mutex)
      attribute_hidden;
 extern int __pthread_mutex_cond_lock (pthread_mutex_t *__mutex)
      attribute_hidden internal_function;
+extern void __pthread_mutex_cond_lock_adjust (pthread_mutex_t *__mutex)
+     attribute_hidden internal_function;
 extern int __pthread_mutex_unlock (pthread_mutex_t *__mutex);
 extern int __pthread_mutex_unlock_internal (pthread_mutex_t *__mutex)
      attribute_hidden;
@@ -564,7 +567,7 @@ extern void __nptl_deallocate_tsd (void) attribute_hidden;
 
 extern int __nptl_setxid (struct xid_command *cmdp) attribute_hidden;
 
-extern void __free_stack_cache (void) attribute_hidden;
+extern void __free_stacks (size_t limit) attribute_hidden;
 
 extern void __wait_lookup_done (void) attribute_hidden;
 

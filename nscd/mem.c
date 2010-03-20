@@ -1,5 +1,5 @@
 /* Cache memory handling.
-   Copyright (C) 2004, 2005, 2006, 2008 Free Software Foundation, Inc.
+   Copyright (C) 2004, 2005, 2006, 2008, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@redhat.com>, 2004.
 
@@ -134,12 +134,11 @@ gc (struct database_dyn *db)
     stack_used = 0;
   size_t nmark = (db->head->first_free / BLOCK_ALIGN + BITS - 1) / BITS;
   size_t memory_needed = nmark * sizeof (BITMAP_T);
-  if (stack_used + memory_needed <= MAX_STACK_USE)
+  if (__builtin_expect (stack_used + memory_needed <= MAX_STACK_USE, 1))
     {
-      mark = (BITMAP_T *) alloca (memory_needed);
+      mark = (BITMAP_T *) alloca_account (memory_needed, stack_used);
       mark_use_malloc = false;
       memset (mark, '\0', memory_needed);
-      stack_used += memory_needed;
     }
   else
     {
@@ -153,19 +152,17 @@ gc (struct database_dyn *db)
   struct hashentry **he;
   struct hashentry **he_data;
   bool he_use_malloc;
-  if (stack_used + memory_needed <= MAX_STACK_USE)
+  if (__builtin_expect (stack_used + memory_needed <= MAX_STACK_USE, 1))
     {
-      he = alloca (db->head->nentries * sizeof (struct hashentry *));
-      he_data = alloca (db->head->nentries * sizeof (struct hashentry *));
+      he = alloca_account (memory_needed, stack_used);
       he_use_malloc = false;
-      stack_used += memory_needed;
     }
   else
     {
       he = xmalloc (memory_needed);
-      he_data = &he[db->head->nentries * sizeof (struct hashentry *)];
       he_use_malloc = true;
     }
+  he_data = &he[db->head->nentries];
 
   size_t cnt = 0;
   for (size_t idx = 0; idx < db->head->module; ++idx)
@@ -199,32 +196,6 @@ gc (struct database_dyn *db)
 	}
     }
   assert (cnt == db->head->nentries);
-
-  /* Go through the list of in-flight memory blocks.  */
-  struct mem_in_flight *mrunp = mem_in_flight_list;
-  while (mrunp != NULL)
-    {
-      /* NB: There can be no race between this test and another thread
-        setting the field to the index we are looking for because
-        this would require the other thread to also have the memlock
-        for the database.
-
-	NB2: we do not have to look at latter blocks (higher indices) if
-	earlier blocks are not in flight.  They are always allocated in
-	sequence.  */
-      for (enum in_flight idx = IDX_result_data;
-	   idx < IDX_last && mrunp->block[idx].dbidx == db - dbs; ++idx)
-	{
-	  assert (mrunp->block[idx].blockoff >= 0);
-	  assert (mrunp->block[idx].blocklen < db->memsize);
-	  assert (mrunp->block[idx].blockoff
-		  + mrunp->block[0].blocklen <= db->memsize);
-	  markrange (mark, mrunp->block[idx].blockoff,
-		     mrunp->block[idx].blocklen);
-	}
-
-      mrunp = mrunp->next;
-    }
 
   /* Sort the entries by the addresses of the referenced data.  All
      the entries pointing to the same DATAHEAD object will have the
@@ -373,11 +344,9 @@ gc (struct database_dyn *db)
       ref_t disp = off_alloc - off_free;
 
       struct moveinfo *new_move;
-      if (stack_used + sizeof (*new_move) <= MAX_STACK_USE)
-	{
-	  new_move = alloca (sizeof (*new_move));
-	  stack_used += sizeof (*new_move);
-	}
+      if (__builtin_expect (stack_used + sizeof (*new_move) <= MAX_STACK_USE,
+			    1))
+	new_move = alloca_account (sizeof (*new_move), stack_used);
       else
 	new_move = obstack_alloc (&ob, sizeof (*new_move));
       new_move->from = db->data + off_alloc;
@@ -545,12 +514,15 @@ gc (struct database_dyn *db)
 
 
 void *
-mempool_alloc (struct database_dyn *db, size_t len, enum in_flight idx)
+mempool_alloc (struct database_dyn *db, size_t len, int data_alloc)
 {
   /* Make sure LEN is a multiple of our maximum alignment so we can
      keep track of used memory is multiples of this alignment value.  */
   if ((len & BLOCK_ALIGN_M1) != 0)
     len += BLOCK_ALIGN - (len & BLOCK_ALIGN_M1);
+
+  if (data_alloc)
+    pthread_rwlock_rdlock (&db->lock);
 
   pthread_mutex_lock (&db->memlock);
 
@@ -594,6 +566,9 @@ mempool_alloc (struct database_dyn *db, size_t len, enum in_flight idx)
 	    }
 	}
 
+      if (data_alloc)
+	pthread_rwlock_unlock (&db->lock);
+
       if (! db->last_alloc_failed)
 	{
 	  dbg_log (_("no more memory for database '%s'"), dbnames[db - dbs]);
@@ -601,17 +576,13 @@ mempool_alloc (struct database_dyn *db, size_t len, enum in_flight idx)
 	  db->last_alloc_failed = true;
 	}
 
+      ++db->head->addfailed;
+
       /* No luck.  */
       res = NULL;
     }
   else
     {
-      /* Remember that we have allocated this memory.  */
-      assert (idx >= 0 && idx < IDX_last);
-      mem_in_flight.block[idx].dbidx = db - dbs;
-      mem_in_flight.block[idx].blocklen = len;
-      mem_in_flight.block[idx].blockoff = db->head->first_free;
-
       db->head->first_free += len;
 
       db->last_alloc_failed = false;

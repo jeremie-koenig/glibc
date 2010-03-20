@@ -1,4 +1,4 @@
-/* Copyright (C) 1995-2004,2005,2006,2007 Free Software Foundation, Inc.
+/* Copyright (C) 1995-2008, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -50,6 +50,11 @@
 # undef __need_wint_t
 # define __need_wint_t
 # include <stddef.h>
+
+/* Tell the caller that we provide correct C++ prototypes.  */
+#if defined __cplusplus && __GNUC_PREREQ (4, 4)
+# define __CORRECT_ISO_CPP_WCHAR_H_PROTO
+#endif
 
 /* We try to get wint_t from <stddef.h>, but not all GCC versions define it
    there.  So define it ourselves if it remains undefined.  */
@@ -159,7 +164,7 @@ extern int wcsncmp (__const wchar_t *__s1, __const wchar_t *__s2, size_t __n)
      __THROW __attribute_pure__;
 __END_NAMESPACE_STD
 
-#ifdef __USE_GNU
+#ifdef __USE_XOPEN2K8
 /* Compare S1 and S2, ignoring case.  */
 extern int wcscasecmp (__const wchar_t *__s1, __const wchar_t *__s2) __THROW;
 
@@ -189,7 +194,7 @@ extern size_t wcsxfrm (wchar_t *__restrict __s1,
 		       __const wchar_t *__restrict __s2, size_t __n) __THROW;
 __END_NAMESPACE_STD
 
-#ifdef __USE_GNU
+#ifdef __USE_XOPEN2K8
 /* Similar to the two functions above but take the information from
    the provided locale and not the global locale.  */
 
@@ -210,11 +215,25 @@ extern wchar_t *wcsdup (__const wchar_t *__s) __THROW __attribute_malloc__;
 
 __BEGIN_NAMESPACE_STD
 /* Find the first occurrence of WC in WCS.  */
+#ifdef __CORRECT_ISO_CPP_WCHAR_H_PROTO
+extern "C++" wchar_t *wcschr (wchar_t *__wcs, wchar_t __wc)
+     __THROW __asm ("wcschr") __attribute_pure__;
+extern "C++" __const wchar_t *wcschr (__const wchar_t *__wcs, wchar_t __wc)
+     __THROW __asm ("wcschr")  __attribute_pure__;
+#else
 extern wchar_t *wcschr (__const wchar_t *__wcs, wchar_t __wc)
      __THROW __attribute_pure__;
+#endif
 /* Find the last occurrence of WC in WCS.  */
+#ifdef __CORRECT_ISO_CPP_WCHAR_H_PROTO
+extern "C++" wchar_t *wcsrchr (wchar_t *__wcs, wchar_t __wc)
+     __THROW __asm ("wcsrchr") __attribute_pure__;
+extern "C++" __const wchar_t *wcsrchr (__const wchar_t *__wcs, wchar_t __wc)
+     __THROW __asm ("wcsrchr") __attribute_pure__;
+#else
 extern wchar_t *wcsrchr (__const wchar_t *__wcs, wchar_t __wc)
      __THROW __attribute_pure__;
+#endif
 __END_NAMESPACE_STD
 
 #ifdef __USE_GNU
@@ -234,11 +253,27 @@ extern size_t wcscspn (__const wchar_t *__wcs, __const wchar_t *__reject)
 extern size_t wcsspn (__const wchar_t *__wcs, __const wchar_t *__accept)
      __THROW __attribute_pure__;
 /* Find the first occurrence in WCS of any character in ACCEPT.  */
+#ifdef __CORRECT_ISO_CPP_WCHAR_H_PROTO
+extern "C++" wchar_t *wcspbrk (wchar_t *__wcs, __const wchar_t *__accept)
+     __THROW __asm ("wcspbrk") __attribute_pure__;
+extern "C++" __const wchar_t *wcspbrk (__const wchar_t *__wcs,
+				       __const wchar_t *__accept)
+     __THROW __asm ("wcspbrk") __attribute_pure__;
+#else
 extern wchar_t *wcspbrk (__const wchar_t *__wcs, __const wchar_t *__accept)
      __THROW __attribute_pure__;
+#endif
 /* Find the first occurrence of NEEDLE in HAYSTACK.  */
+#ifdef __CORRECT_ISO_CPP_WCHAR_H_PROTO
+extern "C++" wchar_t *wcsstr (wchar_t *__haystack, __const wchar_t *__needle)
+     __THROW __asm ("wcsstr") __attribute_pure__;
+extern "C++" __const wchar_t *wcsstr (__const wchar_t *__haystack,
+				      __const wchar_t *__needle)
+     __THROW __asm ("wcsstr") __attribute_pure__;
+#else
 extern wchar_t *wcsstr (__const wchar_t *__haystack, __const wchar_t *__needle)
      __THROW __attribute_pure__;
+#endif
 
 /* Divide WCS into tokens separated by characters in DELIM.  */
 extern wchar_t *wcstok (wchar_t *__restrict __s,
@@ -251,11 +286,19 @@ __END_NAMESPACE_STD
 
 #ifdef __USE_XOPEN
 /* Another name for `wcsstr' from XPG4.  */
+# ifdef __CORRECT_ISO_CPP_WCHAR_H_PROTO
+extern "C++" wchar_t *wcswcs (wchar_t *__haystack, __const wchar_t *__needle)
+     __THROW __asm ("wcswcs") __attribute_pure__;
+extern "C++" __const wchar_t *wcswcs (__const wchar_t *__haystack,
+				      __const wchar_t *__needle)
+     __THROW __asm ("wcswcs") __attribute_pure__;
+# else
 extern wchar_t *wcswcs (__const wchar_t *__haystack, __const wchar_t *__needle)
      __THROW __attribute_pure__;
+# endif
 #endif
 
-#ifdef __USE_GNU
+#ifdef __USE_XOPEN2K8
 /* Return the number of wide characters in S, but at most MAXLEN.  */
 extern size_t wcsnlen (__const wchar_t *__s, size_t __maxlen)
      __THROW __attribute_pure__;
@@ -264,8 +307,16 @@ extern size_t wcsnlen (__const wchar_t *__s, size_t __maxlen)
 
 __BEGIN_NAMESPACE_STD
 /* Search N wide characters of S for C.  */
+#ifdef __CORRECT_ISO_CPP_WCHAR_H_PROTO
+extern "C++" wchar_t *wmemchr (wchar_t *__s, wchar_t __c, size_t __n)
+     __THROW __asm ("wmemchr") __attribute_pure__;
+extern "C++" __const wchar_t *wmemchr (__const wchar_t *__s, wchar_t __c,
+				       size_t __n)
+     __THROW __asm ("wmemchr") __attribute_pure__;
+#else
 extern wchar_t *wmemchr (__const wchar_t *__s, wchar_t __c, size_t __n)
      __THROW __attribute_pure__;
+#endif
 
 /* Compare N wide characters of S1 and S2.  */
 extern int wmemcmp (__const wchar_t *__restrict __s1,
@@ -364,7 +415,7 @@ extern size_t wcsrtombs (char *__restrict __dst,
 __END_NAMESPACE_STD
 
 
-#ifdef	__USE_GNU
+#ifdef	__USE_XOPEN2K8
 /* Write wide character representation of at most NMC bytes of the
    multibyte character string SRC to DST.  */
 extern size_t mbsnrtowcs (wchar_t *__restrict __dst,
@@ -377,7 +428,7 @@ extern size_t wcsnrtombs (char *__restrict __dst,
 			  __const wchar_t **__restrict __src,
 			  size_t __nwc, size_t __len,
 			  mbstate_t *__restrict __ps) __THROW;
-#endif	/* use GNU */
+#endif	/* use POSIX 2008 */
 
 
 /* The following functions are extensions found in X/Open CAE.  */
@@ -507,7 +558,7 @@ extern long double wcstold_l (__const wchar_t *__restrict __nptr,
 #endif /* GNU */
 
 
-#ifdef	__USE_GNU
+#ifdef	__USE_XOPEN2K8
 /* Copy SRC to DEST, returning the address of the terminating L'\0' in
    DEST.  */
 extern wchar_t *wcpcpy (wchar_t *__dest, __const wchar_t *__src) __THROW;
@@ -521,7 +572,7 @@ extern wchar_t *wcpncpy (wchar_t *__dest, __const wchar_t *__src, size_t __n)
 
 /* Wide character I/O functions.  */
 
-#ifdef	__USE_GNU
+#ifdef	__USE_XOPEN2K8
 /* Like OPEN_MEMSTREAM, but the stream is wide oriented and produces
    a wide character string.  */
 extern __FILE *open_wmemstream (wchar_t **__bufloc, size_t *__sizeloc) __THROW;
@@ -839,9 +890,9 @@ __END_DECLS
 
 #endif	/* _WCHAR_H defined */
 
+#endif /* wchar.h  */
+
 /* Undefined all __need_* constants in case we are included to get those
    constants but the whole file was already read.  */
 #undef __need_mbstate_t
 #undef __need_wint_t
-
-#endif /* wchar.h  */
