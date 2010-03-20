@@ -19,7 +19,7 @@
    02111-1307 USA.  */
 
 #include <sysdep.h>
-#include <ifunc-defines.h>
+#include <init-arch.h>
 
 
 /* Define multiple versions only for the definition in libc and for
@@ -33,40 +33,71 @@ ENTRY(strlen)
 	jne	1f
 	call	__init_cpu_features
 1:	leaq	__strlen_sse2(%rip), %rax
-	testl	$(1<<20), __cpu_features+CPUID_OFFSET+COMMON_CPUID_INDEX_1*CPUID_SIZE+CPUID_ECX_OFFSET(%rip)
+	testl	$bit_SSE4_2, __cpu_features+CPUID_OFFSET+index_SSE4_2(%rip)
 	jz	2f
 	leaq	__strlen_sse42(%rip), %rax
 2:	ret
 END(strlen)
 
 
+	.section .text.sse4.2,"ax",@progbits
 	.align 	16
 	.type	__strlen_sse42, @function
 __strlen_sse42:
 	cfi_startproc
 	CALL_MCOUNT
-	pxor	%xmm2, %xmm2
-	movq	%rdi, %rcx
+	pxor	%xmm1, %xmm1
+	movl	%edi, %ecx
 	movq	%rdi, %r8
 	andq	$~15, %rdi
-	movdqa	%xmm2, %xmm1
-	pcmpeqb	(%rdi), %xmm2
-	orl	$0xffffffff, %esi
-	subq	%rdi, %rcx
-	shll	%cl, %esi
-	pmovmskb %xmm2, %edx
-	andl	%esi, %edx
-	jnz	1f
+	xor	%edi, %ecx
+	pcmpeqb	(%rdi), %xmm1
+	pmovmskb %xmm1, %edx
+	shrl	%cl, %edx
+	shll	%cl, %edx
+	andl	%edx, %edx
+	jnz	L(less16bytes)
+	pxor	%xmm1, %xmm1
 
-2:	pcmpistri $0x08, 16(%rdi), %xmm1
-	leaq	16(%rdi), %rdi
-	jnz	2b
+	.p2align 4
+L(more64bytes_loop):
+	pcmpistri $0x08, 16(%rdi), %xmm1
+	jz	L(more32bytes)
 
+	pcmpistri $0x08, 32(%rdi), %xmm1
+	jz	L(more48bytes)
+
+	pcmpistri $0x08, 48(%rdi), %xmm1
+	jz	L(more64bytes)
+
+	add	$64, %rdi
+	pcmpistri $0x08, (%rdi), %xmm1
+	jnz	L(more64bytes_loop)
 	leaq	(%rdi,%rcx), %rax
 	subq	%r8, %rax
 	ret
 
-1:	subq	%r8, %rdi
+	.p2align 4
+L(more32bytes):
+	leaq	16(%rdi,%rcx, 1), %rax
+	subq	%r8, %rax
+	ret
+
+	.p2align 4
+L(more48bytes):
+	leaq	32(%rdi,%rcx, 1), %rax
+	subq	%r8, %rax
+	ret
+
+	.p2align 4
+L(more64bytes):
+	leaq	48(%rdi,%rcx, 1), %rax
+	subq	%r8, %rax
+	ret
+
+	.p2align 4
+L(less16bytes):
+	subq	%r8, %rdi
 	bsfl	%edx, %eax
 	addq	%rdi, %rax
 	ret

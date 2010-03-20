@@ -28,6 +28,7 @@
 #include <float.h>
 #include <gmp-mparam.h>
 #include <gmp.h>
+#include <ieee754.h>
 #include <stdlib/gmp-impl.h>
 #include <stdlib/longlong.h>
 #include <stdlib/fpioconst.h>
@@ -335,6 +336,8 @@ ___printf_fp (FILE *fp,
       /* Check for special values: not a number or infinity.  */
       if (__isnanl (fpnum.ldbl))
 	{
+	  union ieee854_long_double u = { .d = fpnum.ldbl };
+	  is_neg = u.ieee.negative != 0;
 	  if (isupper (info->spec))
 	    {
 	      special = "NAN";
@@ -345,10 +348,10 @@ ___printf_fp (FILE *fp,
 		special = "nan";
 		wspecial = L"nan";
 	      }
-	  is_neg = 0;
 	}
       else if (__isinfl (fpnum.ldbl))
 	{
+	  is_neg = fpnum.ldbl < 0;
 	  if (isupper (info->spec))
 	    {
 	      special = "INF";
@@ -359,7 +362,6 @@ ___printf_fp (FILE *fp,
 	      special = "inf";
 	      wspecial = L"inf";
 	    }
-	  is_neg = fpnum.ldbl < 0;
 	}
       else
 	{
@@ -379,7 +381,8 @@ ___printf_fp (FILE *fp,
       /* Check for special values: not a number or infinity.  */
       if (__isnan (fpnum.dbl))
 	{
-	  is_neg = 0;
+	  union ieee754_double u = { .d = fpnum.dbl };
+	  is_neg = u.ieee.negative != 0;
 	  if (isupper (info->spec))
 	    {
 	      special = "NAN";
@@ -888,8 +891,15 @@ ___printf_fp (FILE *fp,
        it is possible that we need two more characters in front of all the
        other output.  If the amount of memory we have to allocate is too
        large use `malloc' instead of `alloca'.  */
-    size_t wbuffer_to_alloc = (2 + (size_t) chars_needed) * sizeof (wchar_t);
-    buffer_malloced = ! __libc_use_alloca (chars_needed * 2 * sizeof (wchar_t));
+    if (__builtin_expect (chars_needed >= (size_t) -1 / sizeof (wchar_t) - 2
+			  || chars_needed < fracdig_max, 0))
+      {
+	/* Some overflow occurred.  */
+	__set_errno (ERANGE);
+	return -1;
+      }
+    size_t wbuffer_to_alloc = (2 + chars_needed) * sizeof (wchar_t);
+    buffer_malloced = ! __libc_use_alloca (wbuffer_to_alloc);
     if (__builtin_expect (buffer_malloced, 0))
       {
 	wbuffer = (wchar_t *) malloc (wbuffer_to_alloc);

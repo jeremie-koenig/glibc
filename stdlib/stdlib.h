@@ -1,4 +1,4 @@
-/* Copyright (C) 1991-2007, 2009 Free Software Foundation, Inc.
+/* Copyright (C) 1991-2007, 2009, 2010 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -37,7 +37,7 @@ __BEGIN_DECLS
 #ifndef __need_malloc_and_calloc
 #define	_STDLIB_H	1
 
-#if defined __USE_XOPEN && !defined _SYS_WAIT_H
+#if (defined __USE_XOPEN || defined __USE_XOPEN2K8) && !defined _SYS_WAIT_H
 /* XPG requires a few symbols from <sys/wait.h> being defined.  */
 # include <bits/waitflags.h>
 # include <bits/waitstatus.h>
@@ -50,7 +50,7 @@ __BEGIN_DECLS
 #  if defined __GNUC__ && !defined __cplusplus
 #   define __WAIT_INT(status) \
   (__extension__ (((union { __typeof(status) __in; int __i; }) \
-                   { .__in = (status) }).__i))
+		   { .__in = (status) }).__i))
 #  else
 #   define __WAIT_INT(status)	(*(int *) &(status))
 #  endif
@@ -91,7 +91,7 @@ typedef union
 # ifdef __WIFCONTINUED
 #  define WIFCONTINUED(status)	__WIFCONTINUED (__WAIT_INT (status))
 # endif
-#endif	/* X/Open and <sys/wait.h> not included.  */
+#endif	/* X/Open or XPG7 and <sys/wait.h> not included.  */
 
 __BEGIN_NAMESPACE_STD
 /* Returned by `div'.  */
@@ -497,7 +497,8 @@ extern void cfree (void *__ptr) __THROW;
 # include <alloca.h>
 #endif /* Use GNU, BSD, or misc.  */
 
-#if defined __USE_BSD || defined __USE_XOPEN_EXTENDED
+#if (defined __USE_XOPEN_EXTENDED && !defined __USE_XOPEN2K) \
+    || defined __USE_BSD
 /* Allocate SIZE bytes on a page boundary.  The storage cannot be freed.  */
 extern void *valloc (size_t __size) __THROW __attribute_malloc__ __wur;
 #endif
@@ -585,7 +586,7 @@ extern int setenv (__const char *__name, __const char *__value, int __replace)
      __THROW __nonnull ((2));
 
 /* Remove the variable NAME from the environment.  */
-extern int unsetenv (__const char *__name) __THROW;
+extern int unsetenv (__const char *__name) __THROW __nonnull ((1));
 #endif
 
 #ifdef	__USE_MISC
@@ -596,20 +597,24 @@ extern int clearenv (void) __THROW;
 #endif
 
 
-#if defined __USE_MISC || defined __USE_XOPEN_EXTENDED
+#if defined __USE_MISC \
+    || (defined __USE_XOPEN_EXTENDED && !defined __USE_XOPEN2K)
 /* Generate a unique temporary file name from TEMPLATE.
    The last six characters of TEMPLATE must be "XXXXXX";
    they are replaced with a string that makes the file name unique.
    Returns TEMPLATE, or a null pointer if it cannot get a unique file name.  */
 extern char *mktemp (char *__template) __THROW __nonnull ((1)) __wur;
+#endif
 
+#if defined __USE_MISC || defined __USE_XOPEN_EXTENDED \
+    || defined __USE_XOPEN2K8
 /* Generate a unique temporary file name from TEMPLATE.
    The last six characters of TEMPLATE must be "XXXXXX";
    they are replaced with a string that makes the filename unique.
    Returns a file descriptor open on the file for reading and writing,
    or -1 if it cannot create a uniquely-named file.
 
-   This function is a possible cancellation points and therefore not
+   This function is a possible cancellation point and therefore not
    marked with __THROW.  */
 # ifndef __USE_FILE_OFFSET64
 extern int mkstemp (char *__template) __nonnull ((1)) __wur;
@@ -623,6 +628,29 @@ extern int __REDIRECT (mkstemp, (char *__template), mkstemp64)
 # endif
 # ifdef __USE_LARGEFILE64
 extern int mkstemp64 (char *__template) __nonnull ((1)) __wur;
+# endif
+#endif
+
+#ifdef __USE_MISC
+/* Similar to mkstemp, but the template can have a suffix after the
+   XXXXXX.  The length of the suffix is specified in the second
+   parameter.
+
+   This function is a possible cancellation point and therefore not
+   marked with __THROW.  */
+# ifndef __USE_FILE_OFFSET64
+extern int mkstemps (char *__template, int __suffixlen) __nonnull ((1)) __wur;
+# else
+#  ifdef __REDIRECT
+extern int __REDIRECT (mkstemps, (char *__template, int __suffixlen),
+		       mkstemps64) __nonnull ((1)) __wur;
+#  else
+#   define mkstemps mkstemps64
+#  endif
+# endif
+# ifdef __USE_LARGEFILE64
+extern int mkstemps64 (char *__template, int __suffixlen)
+     __nonnull ((1)) __wur;
 # endif
 #endif
 
@@ -654,6 +682,29 @@ extern int __REDIRECT (mkostemp, (char *__template, int __flags), mkostemp64)
 # endif
 # ifdef __USE_LARGEFILE64
 extern int mkostemp64 (char *__template, int __flags) __nonnull ((1)) __wur;
+# endif
+
+/* Similar to mkostemp, but the template can have a suffix after the
+   XXXXXX.  The length of the suffix is specified in the second
+   parameter.
+
+   This function is a possible cancellation point and therefore not
+   marked with __THROW.  */
+# ifndef __USE_FILE_OFFSET64
+extern int mkostemps (char *__template, int __suffixlen, int __flags)
+     __nonnull ((1)) __wur;
+# else
+#  ifdef __REDIRECT
+extern int __REDIRECT (mkostemps, (char *__template, int __suffixlen,
+				   int __flags), mkostemps64)
+     __nonnull ((1)) __wur;
+#  else
+#   define mkostemps mkostemps64
+#  endif
+# endif
+# ifdef __USE_LARGEFILE64
+extern int mkostemps64 (char *__template, int __suffixlen, int __flags)
+     __nonnull ((1)) __wur;
 # endif
 #endif
 
@@ -746,7 +797,8 @@ __END_NAMESPACE_C99
 #endif
 
 
-#if defined __USE_SVID || defined __USE_XOPEN_EXTENDED
+#if (defined __USE_XOPEN_EXTENDED && !defined __USE_XOPEN2K) \
+    || defined __USE_SVID
 /* Convert floating point numbers to strings.  The returned values are
    valid only until another call to the same function.  */
 
@@ -834,7 +886,7 @@ extern int rpmatch (__const char *__response) __THROW __nonnull ((1)) __wur;
 #endif
 
 
-#ifdef __USE_XOPEN_EXTENDED
+#if defined __USE_XOPEN_EXTENDED || defined __USE_XOPEN2K8
 /* Parse comma separated suboption from *OPTIONP and match against
    strings in TOKENS.  If found return index and set *VALUEP to
    optional value introduced by an equal sign.  If the suboption is
@@ -856,7 +908,7 @@ extern void setkey (__const char *__key) __THROW __nonnull ((1));
 
 /* X/Open pseudo terminal handling.  */
 
-#ifdef __USE_XOPEN2K
+#ifdef __USE_XOPEN2KXSI
 /* Return a master pseudo-terminal handle.  */
 extern int posix_openpt (int __oflag) __wur;
 #endif

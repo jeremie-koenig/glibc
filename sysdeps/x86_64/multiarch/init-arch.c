@@ -66,12 +66,20 @@ __init_cpu_features (void)
       else if (__cpu_features.family == 0x06)
 	{
 	  __cpu_features.model += extended_model;
-
-#ifndef ENABLE_SSSE3_ON_ATOM
-	  if (__cpu_features.model == 0x1c)
-	    /* Avoid SSSE3 on Atom since it is slow.  */
-	    __cpu_features.cpuid[COMMON_CPUID_INDEX_1].ecx &= ~(1 << 9);
-#endif
+	  switch (__cpu_features.model)
+	    {
+	    case 0x1a:
+	    case 0x1e:
+	    case 0x1f:
+	    case 0x25:
+	    case 0x2e:
+	    case 0x2f:
+	      /* Rep string instructions are fast on Intel Core i3, i5
+		 and i7.  */
+	      __cpu_features.feature[index_Fast_Rep_String]
+		|= bit_Fast_Rep_String;
+	      break;
+	    }
 	}
     }
   /* This spells out "AuthenticAMD".  */
@@ -85,6 +93,7 @@ __init_cpu_features (void)
     __cpu_features.kind = arch_kind_other;
 }
 
+#undef __get_cpu_features
 
 const struct cpu_features *
 __get_cpu_features (void)

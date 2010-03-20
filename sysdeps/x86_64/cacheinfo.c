@@ -74,6 +74,7 @@ static const struct intel_02_cache_info
     { 0x0a,  2, 32, M(_SC_LEVEL1_DCACHE_SIZE),    8192 },
     { 0x0c,  4, 32, M(_SC_LEVEL1_DCACHE_SIZE),   16384 },
     { 0x0d,  4, 64, M(_SC_LEVEL1_DCACHE_SIZE),   16384 },
+    { 0x0e,  6, 64, M(_SC_LEVEL1_DCACHE_SIZE),   24576 },
     { 0x21,  8, 64, M(_SC_LEVEL2_CACHE_SIZE),   262144 },
     { 0x22,  4, 64, M(_SC_LEVEL3_CACHE_SIZE),   524288 },
     { 0x23,  8, 64, M(_SC_LEVEL3_CACHE_SIZE),  1048576 },
@@ -113,6 +114,7 @@ static const struct intel_02_cache_info
     { 0x7c,  8, 64, M(_SC_LEVEL2_CACHE_SIZE),  1048576 },
     { 0x7d,  8, 64, M(_SC_LEVEL2_CACHE_SIZE),  2097152 },
     { 0x7f,  2, 64, M(_SC_LEVEL2_CACHE_SIZE),   524288 },
+    { 0x80,  8, 64, M(_SC_LEVEL2_CACHE_SIZE),   524288 },
     { 0x82,  8, 32, M(_SC_LEVEL2_CACHE_SIZE),   262144 },
     { 0x83,  8, 32, M(_SC_LEVEL2_CACHE_SIZE),   524288 },
     { 0x84,  8, 32, M(_SC_LEVEL2_CACHE_SIZE),  1048576 },
@@ -452,9 +454,10 @@ __cache_sysconf (int name)
 }
 
 
-/* Half the data cache size for use in memory and string routines, typically
+/* Data cache size for use in memory and string routines, typically
    L1 size.  */
 long int __x86_64_data_cache_size_half attribute_hidden = 32 * 1024 / 2;
+long int __x86_64_data_cache_size attribute_hidden = 32 * 1024;
 /* Shared cache size for use in memory and string routines, typically
    L2 or L3 size.  */
 long int __x86_64_shared_cache_size_half attribute_hidden = 1024 * 1024 / 2;
@@ -516,13 +519,15 @@ init_cacheinfo (void)
           shared = handle_intel (_SC_LEVEL2_CACHE_SIZE, max_cpuid);
 	}
 
+      unsigned int ebx_1;
+
 #ifdef USE_MULTIARCH
       eax = __cpu_features.cpuid[COMMON_CPUID_INDEX_1].eax;
-      ebx = __cpu_features.cpuid[COMMON_CPUID_INDEX_1].ebx;
+      ebx_1 = __cpu_features.cpuid[COMMON_CPUID_INDEX_1].ebx;
       ecx = __cpu_features.cpuid[COMMON_CPUID_INDEX_1].ecx;
       edx = __cpu_features.cpuid[COMMON_CPUID_INDEX_1].edx;
 #else
-      __cpuid (1, eax, ebx, ecx, edx);
+      __cpuid (1, eax, ebx_1, ecx, edx);
 #endif
 
 #ifndef DISABLE_PREFERRED_MEMORY_INSTRUCTION
@@ -554,14 +559,46 @@ init_cacheinfo (void)
 	    }
           while (((eax >> 5) & 0x7) != level);
 
-	  threads = ((eax >> 14) & 0x3ff) + 1;
+	  threads = (eax >> 14) & 0x3ff;
+
+	  /* If max_cpuid >= 11, THREADS is the maximum number of
+	      addressable IDs for logical processors sharing the
+	      cache, instead of the maximum number of threads
+	      sharing the cache.  */
+	  if (threads && max_cpuid >= 11)
+	    {
+	      /* Find the number of logical processors shipped in
+		 one core and apply count mask.  */
+	      i = 0;
+	      while (1)
+		{
+		  __cpuid_count (11, i++, eax, ebx, ecx, edx);
+
+		  int shipped = ebx & 0xff;
+		  int type = ecx & 0xff0;
+		  if (shipped == 0 || type == 0)
+		    break;
+		  else if (type == 0x200)
+		    {
+		      int count_mask;
+
+		      /* Compute count mask.  */
+		      asm ("bsr %1, %0"
+			   : "=r" (count_mask) : "g" (threads));
+		      count_mask = ~(-1 << (count_mask + 1));
+		      threads = (shipped - 1) & count_mask;
+		      break;
+		    }
+		}
+	    }
+	  threads += 1;
 	}
       else
         {
 	intel_bug_no_cache_info:
 	  /* Assume that all logical threads share the highest cache level.  */
 
-	  threads = (ebx >> 16) & 0xff;
+	  threads = (ebx_1 >> 16) & 0xff;
 	}
 
       /* Cap usage of highest cache level to the number of supported
@@ -623,7 +660,10 @@ init_cacheinfo (void)
     }
 
   if (data > 0)
-    __x86_64_data_cache_size_half = data / 2;
+    {
+      __x86_64_data_cache_size_half = data / 2;
+      __x86_64_data_cache_size = data;
+    }
 
   if (shared > 0)
     {
