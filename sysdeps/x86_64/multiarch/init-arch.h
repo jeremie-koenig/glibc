@@ -16,6 +16,24 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
+#define bit_Fast_Rep_String	(1 << 0)
+
+#ifdef	__ASSEMBLER__
+
+#include <ifunc-defines.h>
+
+#define bit_SSE2	(1 << 26)
+#define bit_SSSE3	(1 << 9)
+#define bit_SSE4_2	(1 << 20)
+
+#define index_SSE2	COMMON_CPUID_INDEX_1*CPUID_SIZE+CPUID_EDX_OFFSET
+#define index_SSSE3	COMMON_CPUID_INDEX_1*CPUID_SIZE+CPUID_ECX_OFFSET
+#define index_SSE4_2	COMMON_CPUID_INDEX_1*CPUID_SIZE+CPUID_ECX_OFFSET
+
+#define index_Fast_Rep_String	FEATURE_INDEX_1*FEATURE_SIZE
+
+#else	/* __ASSEMBLER__ */
+
 #include <sys/param.h>
 
 enum
@@ -23,6 +41,13 @@ enum
     COMMON_CPUID_INDEX_1 = 0,
     /* Keep the following line at the end.  */
     COMMON_CPUID_INDEX_MAX
+  };
+
+enum
+  {
+    FEATURE_INDEX_1 = 0,
+    /* Keep the following line at the end.  */
+    FEATURE_INDEX_MAX
   };
 
 extern struct cpu_features
@@ -44,6 +69,7 @@ extern struct cpu_features
   } cpuid[COMMON_CPUID_INDEX_MAX];
   unsigned int family;
   unsigned int model;
+  unsigned int feature[FEATURE_INDEX_MAX];
 } __cpu_features attribute_hidden;
 
 
@@ -58,30 +84,20 @@ extern void __init_cpu_features (void) attribute_hidden;
 extern const struct cpu_features *__get_cpu_features (void)
      __attribute__ ((const));
 
+#ifndef NOT_IN_libc
+# define __get_cpu_features()	(&__cpu_features)
+#endif
+
+#define HAS_CPU_FEATURE(idx, reg, bit) \
+  ((__get_cpu_features ()->cpuid[idx].reg & (1 << (bit))) != 0)
+
 /* Following are the feature tests used throughout libc.  */
 
-#ifndef NOT_IN_libc
-# define HAS_SSE2 \
-  ((__cpu_features.cpuid[COMMON_CPUID_INDEX_1].edx & (1 << 26)) != 0)
+#define HAS_SSE2	HAS_CPU_FEATURE (COMMON_CPUID_INDEX_1, edx, 26)
+#define HAS_POPCOUNT	HAS_CPU_FEATURE (COMMON_CPUID_INDEX_1, ecx, 23)
+#define HAS_SSE4_2	HAS_CPU_FEATURE (COMMON_CPUID_INDEX_1, ecx, 20)
+#define HAS_FMA		HAS_CPU_FEATURE (COMMON_CPUID_INDEX_1, ecx, 12)
 
-# define HAS_POPCOUNT \
-  ((__cpu_features.cpuid[COMMON_CPUID_INDEX_1].ecx & (1 << 23)) != 0)
+#define index_Fast_Rep_String	FEATURE_INDEX_1
 
-# define HAS_SSE4_2 \
-  ((__cpu_features.cpuid[COMMON_CPUID_INDEX_1].ecx & (1 << 20)) != 0)
-
-# define HAS_FMA \
-  ((__cpu_features.cpuid[COMMON_CPUID_INDEX_1].ecx & (1 << 12)) != 0)
-#else
-# define HAS_SSE2 \
-  ((__get_cpu_features ()->cpuid[COMMON_CPUID_INDEX_1].edx & (1 << 26)) != 0)
-
-# define HAS_POPCOUNT \
-  ((__get_cpu_features ()->cpuid[COMMON_CPUID_INDEX_1].ecx & (1 << 23)) != 0)
-
-# define HAS_SSE4_2 \
-  ((__get_cpu_features ()->cpuid[COMMON_CPUID_INDEX_1].ecx & (1 << 20)) != 0)
-
-# define HAS_FMA \
-  ((__get_cpu_features ()->cpuid[COMMON_CPUID_INDEX_1].ecx & (1 << 12)) != 0)
-#endif
+#endif	/* __ASSEMBLER__ */

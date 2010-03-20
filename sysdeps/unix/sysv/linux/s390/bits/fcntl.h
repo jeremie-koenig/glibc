@@ -1,5 +1,6 @@
 /* O_*, F_*, FD_* bit values for Linux.
-   Copyright (C) 2000,2001,2002,2004,2006,2007 Free Software Foundation, Inc.
+   Copyright (C) 2000-2002,2004,2006,2007,2009,2010
+   Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -29,7 +30,7 @@
 
 
 /* open/fcntl - O_SYNC is only implemented on blocks devices and on files
-   located on an ext2 file system */
+   located on a few file systems.  */
 #define O_ACCMODE	   0003
 #define O_RDONLY	     00
 #define O_WRONLY	     01
@@ -41,16 +42,18 @@
 #define O_APPEND	  02000
 #define O_NONBLOCK	  04000
 #define O_NDELAY	O_NONBLOCK
-#define O_SYNC		 010000
+#define O_SYNC	       04010000
 #define O_FSYNC		 O_SYNC
 #define O_ASYNC		 020000
 
-#ifdef __USE_GNU
-# define O_DIRECT	 040000	/* Direct disk access.	*/
+#ifdef __USE_XOPEN2K8
 # define O_DIRECTORY	0200000	/* Must be a directory.	 */
 # define O_NOFOLLOW	0400000	/* Do not follow links.	 */
-# define O_NOATIME     01000000 /* Do not set atime.  */
 # define O_CLOEXEC     02000000 /* Set close_on_exec.  */
+#endif
+#ifdef __USE_GNU
+# define O_DIRECT	 040000	/* Direct disk access.	*/
+# define O_NOATIME     01000000 /* Do not set atime.  */
 #endif
 
 #ifdef __USE_LARGEFILE64
@@ -66,7 +69,7 @@
    We define the symbols here but let them do the same as O_SYNC since
    this is a superset.	*/
 #if defined __USE_POSIX199309 || defined __USE_UNIX98
-# define O_DSYNC	O_SYNC	/* Synchronize data.  */
+# define O_DSYNC	010000	/* Synchronize data.  */
 # define O_RSYNC	O_SYNC	/* Synchronize read operations.	 */
 #endif
 
@@ -99,20 +102,24 @@
 # define F_SETLKW64	14	/* Set record locking info (blocking).	*/
 #endif
 
-#if defined __USE_BSD || defined __USE_UNIX98
-# define F_SETOWN	8	/* Get owner of socket (receiver of SIGIO).  */
-# define F_GETOWN	9	/* Set owner of socket (receiver of SIGIO).  */
+#if defined __USE_BSD || defined __USE_UNIX98 || defined __USE_XOPEN2K8
+# define F_SETOWN	8	/* Get owner (process receiving SIGIO).  */
+# define F_GETOWN	9	/* Set owner (process receiving SIGIO).  */
 #endif
 
 #ifdef __USE_GNU
 # define F_SETSIG	10	/* Set number of signal to be sent.  */
 # define F_GETSIG	11	/* Get number of signal to be sent.  */
+# define F_SETOWN_EX	15	/* Get owner (thread receiving SIGIO).  */
+# define F_GETOWN_EX	16	/* Set owner (thread receiving SIGIO).  */
 #endif
 
 #ifdef __USE_GNU
 # define F_SETLEASE	1024	/* Set a lease.	 */
 # define F_GETLEASE	1025	/* Enquire what lease is active.  */
 # define F_NOTIFY	1026	/* Request notfications on a directory.	 */
+#endif
+#ifdef __USE_XOPEN2K8
 # define F_DUPFD_CLOEXEC 1030	/* Duplicate file descriptor with
 				   close-on-exit set.  */
 #endif
@@ -181,6 +188,24 @@ struct flock64
   };
 #endif
 
+#ifdef __USE_GNU
+/* Owner types.  */
+enum __pid_type
+  {
+    F_OWNER_TID = 0,		/* Kernel thread.  */
+    F_OWNER_PID,		/* Process.  */
+    F_OWNER_PGRP,		/* Process group.  */
+    F_OWNER_GID = F_OWNER_PGRP	/* Alternative, obsolete name.  */
+  };
+
+/* Structure to use with F_GETOWN_EX and F_SETOWN_EX.  */
+struct f_owner_ex
+  {
+    enum __pid_type type;	/* Owner type of ID.  */
+    __pid_t pid;		/* ID of owner.  */
+  };
+#endif
+
 /* Define some more compatibility macros to be backward compatible with
    BSD systems which did not managed to hide these kernel macros.  */
 #ifdef	__USE_BSD
@@ -238,7 +263,7 @@ extern ssize_t readahead (int __fd, __off64_t __offset, size_t __count)
 
 
 /* Selective file content synch'ing.  */
-extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+extern int sync_file_range (int __fd, __off64_t __offset, __off64_t __count,
 			    unsigned int __flags);
 
 
@@ -260,8 +285,8 @@ extern ssize_t tee (int __fdin, int __fdout, size_t __len,
 extern int fallocate (int __fd, int __mode, __off_t __offset, __off_t __len);
 # else
 #  ifdef __REDIRECT
-extern int __REDIRECT (fallocate, (int __fd, int __mode, __off_t __offset,
-				   __off_t __len),
+extern int __REDIRECT (fallocate, (int __fd, int __mode, __off64_t __offset,
+				   __off64_t __len),
 		       fallocate64);
 #  else
 #   define fallocate fallocate64

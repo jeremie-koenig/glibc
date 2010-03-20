@@ -1,6 +1,5 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
+/* Copyright (C) 2000, 2007, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
-   Contributed by Jakub Jelinek <jakub@redhat.com>.
 
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -18,24 +17,25 @@
    02111-1307 USA.  */
 
 #include <errno.h>
-#include <sysdep.h>
-#include <setjmp.h>
-#include <bits/setjmp.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#define __longjmp ____longjmp_chk
+/* Generate a unique temporary file name from TEMPLATE.  The last six
+   characters before a suffix of length SUFFIXLEN of TEMPLATE must be
+   "XXXXXX"; they are replaced with a string that makes the filename
+   unique.  Then open the file and return a fd. */
+int
+mkostemps64 (template, suffixlen, flags)
+     char *template;
+     int suffixlen;
+     int flags;
+{
+  if (suffixlen < 0)
+    {
+      __set_errno (EINVAL);
+      return -1;
+    }
 
-#define CHECK_SP(env, guard) \
-  do									\
-    {									\
-      uintptr_t cur_sp;							\
-      uintptr_t new_sp = env->__gregs[9];				\
-      __asm ("lr %0, %%r15" : "=r" (cur_sp));				\
-      new_sp ^= guard;							\
-      if (new_sp < cur_sp)						\
-	__fortify_fail ("longjmp causes uninitialized stack frame");	\
-    } while (0)
-
-#include "__longjmp.c"
+  return __gen_tempname (template, suffixlen, flags | O_LARGEFILE, __GT_FILE);
+}
