@@ -1,4 +1,4 @@
-# Copyright (C) 1991-2002,2003,2004,2005,2006,2008
+# Copyright (C) 1991-2002,2003,2004,2005,2006,2008,2009
 #	Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
@@ -271,7 +271,7 @@ installed-headers = argp/argp.h assert/assert.h catgets/nl_types.h \
 		    crypt/crypt.h ctype/ctype.h debug/execinfo.h \
 		    dirent/dirent.h dlfcn/dlfcn.h elf/elf.h elf/link.h \
 		    gmon/sys/gmon.h gmon/sys/gmon_out.h gmon/sys/profil.h \
-		    grp/grp.h iconv/iconv.h iconv/gconv.h \
+		    grp/grp.h gshadow/gshadow.h iconv/iconv.h iconv/gconv.h \
 		    $(wildcard inet/netinet/*.h) \
 		    $(wildcard inet/arpa/*.h inet/protocols/*.h) \
 		    inet/aliases.h inet/ifaddrs.h inet/netinet/ip6.h \
@@ -341,24 +341,15 @@ endif
 
 .PHONY: TAGS
 TAGS:
-	scripts/list-sources.sh | sed -n '/Makefile/p;\
+	scripts/list-sources.sh | sed -n -e '/Makefile/p' \
 	  $(foreach S,[chsSyl] cxx sh bash pl,\
-		    $(subst .,\.,/.$S\(.in\)*$$/p;))' \
+		    $(subst .,\.,-e '/.$S\(.in\)*$$/p')) \
 	| $(ETAGS) -o $@ -
 
 # Make the distribution tarfile.
 .PHONY: dist tag-for-dist
 
 generated := $(generated) stubs.h
-
-README: README.template version.h
-	-rm -f $@
-	sed -e 's/RELEASE/$(release)/' -e 's/VERSION/$(version)/' < $< > $@
-# Make it unwritable so I won't change it by mistake.
-	chmod 444 $@
-ifeq ($(with-cvs),yes)
-	test ! -d CVS || cvs $(CVSOPTS) commit -m'Remade for $(release)-$(version)' $@
-endif
 
 files-for-dist := README FAQ INSTALL NOTES configure
 

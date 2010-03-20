@@ -434,6 +434,19 @@ ifndef +link
 			   $(common-objpfx)libc% $(+postinit),$^) \
 	      $(link-extra-libs) $(link-libc) $(+postctor) $(+postinit)
 endif
+# Command for linking PIE programs with the C library.
+ifndef +link-pie
++link-pie = $(CC) -pie -Wl,-O1 -nostdlib -nostartfiles -o $@ \
+	     $(sysdep-LDFLAGS) $(config-LDFLAGS) $(LDFLAGS) $(LDFLAGS-$(@F)) \
+	     $(combreloc-LDFLAGS) $(relro-LDFLAGS) $(hashstyle-LDFLAGS) \
+	     $(addprefix $(csu-objpfx),S$(start-installed-name)) \
+	     $(+preinit) $(+prectorS) \
+	     $(filter-out $(addprefix $(csu-objpfx),start.o \
+	     S$(start-installed-name))\
+	     $(+preinit) $(link-extra-libs) \
+	     $(common-objpfx)libc% $(+postinit),$^) \
+	     $(link-extra-libs) $(link-libc) $(+postctorS) $(+postinit)
+endif
 # Command for statically linking programs with the C library.
 ifndef +link-static
 +link-static = $(CC) -nostdlib -nostartfiles -static -o $@ \
@@ -538,6 +551,9 @@ ifeq ($(elf),yes)
 +postinit = $(addprefix $(csu-objpfx),crtn.o)
 +prector = `$(CC) --print-file-name=crtbegin.o`
 +postctor = `$(CC) --print-file-name=crtend.o`
+# Variants of the two previous definitions for linking PIE programs.
++prectorS = `$(CC) --print-file-name=crtbeginS.o`
++postctorS = `$(CC) --print-file-name=crtendS.o`
 +interp = $(addprefix $(elf-objpfx),interp.os)
 endif
 csu-objpfx = $(common-objpfx)csu/
@@ -648,7 +664,6 @@ endif	# $(+cflags) == ""
 
 # Don't duplicate options if we inherited variables from the parent.
 +cflags	:= $(sort $(+cflags))
-
 
 # These are flags given to the C compiler to tell it to look for
 # include files (including ones given in angle brackets) in the parent
@@ -770,7 +785,7 @@ else
 ASFLAGS :=
 endif
 endif
-ASFLAGS += $(ASFLAGS-config)
+ASFLAGS += $(ASFLAGS-config) $(asflags-cpu)
 
 ifndef BUILD_CC
 BUILD_CC = $(CC)
@@ -793,9 +808,9 @@ ifeq (yes, $(build-shared))
 # `FOO.v', and along with that `FOO.v.i' should be given dependencies
 # listing both its input files, and any header files that it may reference
 # (but no commands).
-%.v.i: $(common-objpfx)config.h
-	sed 's/#.*$$//;/^[ 	]*$$/d;s/^[ 	]*%/#/' \
-	    $(filter-out FORCE %.h,$^) \
+%.v.i: $(common-objpfx)config.h $(..)Makeconfig
+	sed '/^[ 	]*%/!s/#.*$$//;/^[ 	]*$$/d;s/^[ 	]*%/#/' \
+	    $(filter-out FORCE %.h $(..)Makeconfig,$^) \
 	| $(CC) -E -undef $(CPPFLAGS) -x assembler-with-cpp - \
 		   > $@T
 	mv -f $@T $@
@@ -918,7 +933,7 @@ endif
 all-subdirs = csu assert ctype locale intl catgets math setjmp signal	    \
 	      stdlib stdio-common libio malloc string wcsmbs time dirent    \
 	      grp pwd posix io termios resource misc socket sysvipc gmon    \
-	      gnulib iconv iconvdata wctype manual shadow po argp	    \
+	      gnulib iconv iconvdata wctype manual shadow gshadow po argp   \
 	      crypt nss localedata timezone rt conform debug		    \
 	      $(add-on-subdirs) $(dlfcn) $(binfmt-subdir)
 

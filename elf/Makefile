@@ -29,7 +29,7 @@ routines	= $(dl-routines) dl-support dl-iteratephdr \
 # profiled libraries.
 dl-routines	= $(addprefix dl-,load cache lookup object reloc deps \
 			          runtime error init fini debug misc \
-				  version profile conflict tls origin \
+				  version profile conflict tls origin scope \
 				  execstack caller open close trampoline)
 all-dl-routines = $(dl-routines) $(sysdep-dl-routines)
 # But they are absent from the shared libc, because that code is in ld.so.
@@ -47,7 +47,7 @@ distribute	:= rtld-Rules \
 		   dl-cache.h dl-hash.h soinit.c sofini.c ldd.bash.in \
 		   genrtldtbl.awk atomicity.h dl-procinfo.h ldsodefs.h \
 		   dl-librecon.h interp.c sln.c dl-dst.h hp-timing.h \
-		   do-lookup.h dl-lookupcfg.h sprof.c gen-trusted-dirs.awk \
+		   dl-lookupcfg.h sprof.c gen-trusted-dirs.awk \
 		   testobj1.c testobj2.c testobj3.c testobj4.c testobj5.c \
 		   testobj6.c testobj1_1.c failobj.c unloadmod.c \
 		   ldconfig.h ldconfig.c cache.c readlib.c readelflib.c \
@@ -89,11 +89,36 @@ distribute	:= rtld-Rules \
 		   unload4mod1.c unload4mod2.c unload4mod3.c unload4mod4.c \
 		   unload6mod1.c unload6mod2.c unload6mod3.c \
 		   unload7mod1.c unload7mod2.c \
-		   tst-auditmod1.c tst-audit.sh \
+		   tst-audit1.c tst-audit2.c tst-audit3.c tst-audit4.c \
+		   tst-auditmod1.c tst-auditmod3a.c tst-auditmod3b.c \
+		   tst-auditmod4a.c tst-auditmod4b.c \
+		   tst-audit5.c tst-auditmod5a.c tst-auditmod5b.c \
+		   tst-audit6.c tst-auditmod6a.c tst-auditmod6b.c \
+		   tst-auditmod6c.c \
+		   tst-audit7.c tst-auditmod7a.c tst-auditmod7b.c \
 		   order2mod1.c order2mod2.c order2mod3.c order2mod4.c \
 		   tst-stackguard1.c tst-stackguard1-static.c \
 		   tst-array5.c tst-array5-static.c tst-array5dep.c \
-		   tst-array5.exp tst-leaks1.c
+		   tst-array5.exp tst-leaks1.c check-execstack.c \
+		   ifuncmain1.c ifuncmain1pic.c ifuncmain1vis.c \
+		   ifuncmain1vispic.c ifuncmain1static.c \
+		   ifuncmain1staticpic.c ifuncmain1picstatic.c \
+		   ifuncdep1.c ifuncdep1pic.c ifuncmod1.c \
+		   ifuncmain1pie.c ifuncmain1vispie.c \
+		   ifuncmain1staticpie.c \
+		   ifuncmain2.c ifuncmain2static.c ifuncdep2.c \
+		   ifuncmain2pic.c ifuncmain2picstatic.c ifuncdep2pic.c \
+		   ifuncmain3.c ifuncmod3.c \
+		   ifuncmain4.c ifuncmain4static.c ifuncmain4picstatic.c \
+		   ifuncmain5.c ifuncmain5pic.c ifuncmain5picstatic.c \
+		   ifuncmain5pie.c ifuncmain5static.c \
+		   ifuncmain5staticpic.c \
+		   ifuncdep5.c ifuncdep5pic.c ifuncmod5.c \
+		   ifuncmain6pie.c ifuncmod6.c \
+		   ifuncmain7.c ifuncmain7pic.c ifuncmain7picstatic.c \
+		   ifuncmain7pie.c ifuncmain7static.c \
+		   tst-unique1.c tst-unique1mod1.c tst-unique1mod2.c \
+		   tst-unique2.c tst-unique2mod1.c tst-unique2mod2.c
 
 CFLAGS-dl-runtime.c = -fexceptions -fasynchronous-unwind-tables
 CFLAGS-dl-lookup.c = -fexceptions -fasynchronous-unwind-tables
@@ -172,10 +197,14 @@ tests += loadtest restest1 preloadtest loadfail multiload origtest resolvfail \
 	 tst-dlmopen1 tst-dlmopen2 tst-dlmopen3 \
 	 unload3 unload4 unload5 unload6 unload7 tst-global1 order2 \
 	 tst-audit1 tst-audit2 \
-	 tst-stackguard1 tst-addr1 tst-thrlock
+	 tst-stackguard1 tst-addr1 tst-thrlock \
+	 tst-unique1 tst-unique2
 #	 reldep9
 test-srcs = tst-pathopt
 tests-execstack-yes = tst-execstack tst-execstack-needed tst-execstack-prog
+ifeq (x86_64,$(config-machine))
+tests += tst-audit3 tst-audit4 tst-audit5 tst-audit6 tst-audit7
+endif
 endif
 ifeq (yesyes,$(have-fpie)$(build-shared))
 tests: $(objpfx)tst-pie1.out
@@ -217,12 +246,21 @@ modules-names = testobj1 testobj2 testobj3 testobj4 testobj5 testobj6 \
 		unload4mod1 unload4mod2 unload4mod3 unload4mod4 \
 		unload6mod1 unload6mod2 unload6mod3 \
 		unload7mod1 unload7mod2 \
-		order2mod1 order2mod2 order2mod3 order2mod4
+		order2mod1 order2mod2 order2mod3 order2mod4 \
+		tst-unique1mod1 tst-unique1mod2 \
+		tst-unique2mod1 tst-unique2mod2
 ifeq (yes,$(have-initfini-array))
 modules-names += tst-array2dep tst-array5dep
 endif
 ifeq (yesyes,$(have-fpie)$(build-shared))
 modules-names += tst-piemod1
+endif
+ifeq (x86_64,$(config-machine))
+modules-names += tst-auditmod3a tst-auditmod3b \
+		tst-auditmod4a tst-auditmod4b \
+		tst-auditmod5a tst-auditmod5b \
+		tst-auditmod6a tst-auditmod6b tst-auditmod6c \
+		tst-auditmod7a tst-auditmod7b
 endif
 modules-execstack-yes = tst-execstack-mod
 extra-test-objs += $(addsuffix .os,$(strip $(modules-names)))
@@ -231,6 +269,28 @@ test-extras += $(modules-names)
 
 # filtmod1.so has a special rule
 modules-names-nobuild := filtmod1
+
+ifeq (yes,$(multi-arch))
+tests-static += ifuncmain1static ifuncmain1picstatic \
+		ifuncmain2static ifuncmain2picstatic \
+		ifuncmain4static ifuncmain4picstatic \
+		ifuncmain5static ifuncmain5picstatic \
+		ifuncmain7static ifuncmain7picstatic
+
+ifeq (yes,$(build-shared))
+tests += ifuncmain1 ifuncmain1pic ifuncmain1vis ifuncmain1vispic \
+	 ifuncmain1staticpic \
+	 ifuncmain2 ifuncmain2pic ifuncmain3 ifuncmain4 \
+	 ifuncmain5 ifuncmain5pic ifuncmain5staticpic \
+	 ifuncmain7 ifuncmain7pic
+ifeq (yes,$(have-fpie))
+tests: $(objpfx)ifuncmain1pie.out $(objpfx)ifuncmain1vispie.out \
+	$(objpfx)ifuncmain1staticpie.out $(objpfx)ifuncmain5pie.out \
+	$(objpfx)ifuncmain6pie.out $(objpfx)ifuncmain7pie.out
+endif
+modules-names += ifuncmod1 ifuncmod3 ifuncmod5 ifuncmod6
+endif
+endif
 
 
 include ../Rules
@@ -504,6 +564,9 @@ reldep8mod2.so-no-z-defs = yes
 reldep9mod1.so-no-z-defs = yes
 unload3mod4.so-no-z-defs = yes
 unload4mod1.so-no-z-defs = yes
+ifuncmod1.so-no-z-defs = yes
+ifuncmod5.so-no-z-defs = yes
+ifuncmod6.so-no-z-defs = yes
 
 ifeq ($(build-shared),yes)
 # Build all the modules even when not actually running test programs.
@@ -826,14 +889,7 @@ $(objpfx)tst-pie1.out: $(objpfx)tst-pie1
 	  $< > $@
 
 $(objpfx)tst-pie1: $(objpfx)tst-pie1.o $(objpfx)tst-piemod1.so
-	$(LINK.o) -pie -Wl,-O1 \
-	  $(sysdep-LDFLAGS) $(config-LDFLAGS) \
-	  $(extra-B-$(@F:lib%.so=%).so) -B$(csu-objpfx) \
-	  $(extra-B-$(@F:lib%.so=%).so) $(load-map-file) \
-	  $(LDFLAGS) $(LDFLAGS-$(@F)) \
-	  -L$(subst :, -L,$(rpath-link)) -Wl,-rpath-link=$(rpath-link) \
-	  -o $@ $(objpfx)tst-pie1.o $(objpfx)tst-piemod1.so \
-	  $(common-objpfx)libc_nonshared.a
+	$(+link-pie)
 
 generated += tst-pie1 tst-pie1.out tst-pie1.o
 endif
@@ -842,18 +898,28 @@ check-textrel-CFLAGS = -O -Wall -D_XOPEN_SOURCE=600 -D_BSD_SOURCE
 $(objpfx)check-textrel: check-textrel.c
 	$(native-compile)
 
+check-execstack-CFLAGS = -O -Wall -D_XOPEN_SOURCE=600 -D_BSD_SOURCE -std=gnu99
+$(objpfx)check-execstack: check-execstack.c
+	$(native-compile)
+
 check-localplt-CFLAGS = -O -Wall -D_GNU_SOURCE -std=gnu99
 $(objpfx)check-localplt: check-localplt.c
 	$(native-compile)
 
 ifeq (yes,$(build-shared))
-tests: $(objpfx)check-textrel.out
+tests: $(objpfx)check-textrel.out $(objpfx)check-execstack.out
 
 $(objpfx)check-textrel.out: $(objpfx)check-textrel
 	$(dir $<)$(notdir $<) $(common-objpfx)libc.so \
 	  $(sort $(wildcard $(common-objpfx)*/lib*.so \
 			    $(common-objpfx)iconvdata/*.so)) > $@
 generated += check-textrel check-textrel.out
+
+$(objpfx)check-execstack.out: $(objpfx)check-execstack
+	$(dir $<)$(notdir $<) $(common-objpfx)libc.so \
+	  $(sort $(wildcard $(common-objpfx)*/lib*.so \
+			    $(common-objpfx)iconvdata/*.so)) > $@
+generated += check-execstack check-execstack.out
 
 $(objpfx)tst-dlmodcount: $(libdl)
 $(objpfx)tst-dlmodcount.out: $(test-modules)
@@ -914,6 +980,27 @@ tst-audit1-ENV = LD_AUDIT=$(objpfx)tst-auditmod1.so
 $(objpfx)tst-audit2.out: $(objpfx)tst-auditmod1.so
 tst-audit2-ENV = LD_AUDIT=$(objpfx)tst-auditmod1.so
 
+$(objpfx)tst-audit3: $(objpfx)tst-auditmod3a.so
+$(objpfx)tst-audit3.out: $(objpfx)tst-auditmod3b.so
+tst-audit3-ENV = LD_AUDIT=$(objpfx)tst-auditmod3b.so
+
+$(objpfx)tst-audit4: $(objpfx)tst-auditmod4a.so
+$(objpfx)tst-audit4.out: $(objpfx)tst-auditmod4b.so
+tst-audit4-ENV = LD_AUDIT=$(objpfx)tst-auditmod4b.so
+
+$(objpfx)tst-audit5: $(objpfx)tst-auditmod5a.so
+$(objpfx)tst-audit5.out: $(objpfx)tst-auditmod5b.so
+tst-audit5-ENV = LD_AUDIT=$(objpfx)tst-auditmod5b.so
+
+$(objpfx)tst-audit6: $(objpfx)tst-auditmod6a.so
+$(objpfx)tst-audit6.out: $(objpfx)tst-auditmod6b.so \
+			 $(objpfx)tst-auditmod6c.so
+tst-audit6-ENV = LD_AUDIT=$(objpfx)tst-auditmod6b.so:$(objpfx)tst-auditmod6c.so
+
+$(objpfx)tst-audit7: $(objpfx)tst-auditmod7a.so
+$(objpfx)tst-audit7.out: $(objpfx)tst-auditmod7b.so
+tst-audit7-ENV = LD_AUDIT=$(objpfx)tst-auditmod7b.so
+
 $(objpfx)tst-global1: $(libdl)
 $(objpfx)tst-global1.out: $(objpfx)testobj6.so $(objpfx)testobj2.so
 
@@ -941,3 +1028,127 @@ tst-leaks1-ENV = MALLOC_TRACE=$(objpfx)tst-leaks1.mtrace
 $(objpfx)tst-addr1: $(libdl)
 
 $(objpfx)tst-thrlock: $(libdl) $(shared-thread-library)
+
+CFLAGS-ifuncmain1pic.c += $(pic-ccflag)
+CFLAGS-ifuncmain1picstatic.c += $(pic-ccflag)
+CFLAGS-ifuncmain1staticpic.c += $(pic-ccflag)
+CFLAGS-ifuncdep1pic.c += $(pic-ccflag)
+CFLAGS-ifuncmain1vispic.c += $(pic-ccflag)
+CFLAGS-ifuncmain2pic.c += $(pic-ccflag)
+CFLAGS-ifuncmain2picstatic.c += $(pic-ccflag)
+CFLAGS-ifuncdep2pic.c += $(pic-ccflag)
+CFLAGS-ifuncmain4picstatic.c += $(pic-ccflag)
+CFLAGS-ifuncmain5pic.c += $(pic-ccflag)
+CFLAGS-ifuncmain5picstatic.c += $(pic-ccflag)
+CFLAGS-ifuncmain5staticpic.c += $(pic-ccflag)
+CFLAGS-ifuncdep5pic.c += $(pic-ccflag)
+CFLAGS-ifuncmain7pic.c += $(pic-ccflag)
+CFLAGS-ifuncmain7picstatic.c += $(pic-ccflag)
+
+LDFLAGS-ifuncmain3 = -Wl,-export-dynamic
+
+ifeq (yesyes,$(have-fpie)$(build-shared))
+CFLAGS-ifuncmain1pie.c += $(pie-ccflag)
+CFLAGS-ifuncmain1vispie.c += $(pie-ccflag)
+CFLAGS-ifuncmain1staticpie.c += $(pie-ccflag)
+CFLAGS-ifuncmain5pie.c += $(pie-ccflag)
+CFLAGS-ifuncmain6pie.c += $(pie-ccflag)
+CFLAGS-ifuncmain7pie.c += $(pie-ccflag)
+
+$(objpfx)ifuncmain1pie.out: $(objpfx)ifuncmain1pie
+	$(elf-objpfx)$(rtld-installed-name) \
+	  --library-path $(rpath-link)$(patsubst %,:%,$(sysdep-library-path)) \
+	  $< > $@
+
+$(objpfx)ifuncmain1pie: $(objpfx)ifuncmain1pie.o $(objpfx)ifuncmod1.so
+	$(+link-pie)
+
+generated += ifuncmain1pie ifuncmain1pie.out
+
+$(objpfx)ifuncmain1staticpie.out: $(objpfx)ifuncmain1staticpie
+	$(elf-objpfx)$(rtld-installed-name) \
+	  --library-path $(rpath-link)$(patsubst %,:%,$(sysdep-library-path)) \
+	  $< > $@
+
+$(objpfx)ifuncmain1staticpie: $(objpfx)ifuncmain1staticpie.o $(objpfx)ifuncdep1pic.o
+	$(+link-pie)
+
+generated += ifuncmain1staticpie ifuncmain1staticpie.out
+
+$(objpfx)ifuncmain1vispie.out: $(objpfx)ifuncmain1vispie
+	$(elf-objpfx)$(rtld-installed-name) \
+	  --library-path $(rpath-link)$(patsubst %,:%,$(sysdep-library-path)) \
+	  $< > $@
+
+$(objpfx)ifuncmain1vispie: $(objpfx)ifuncmain1vispie.o $(objpfx)ifuncmod1.so
+	$(+link-pie)
+
+generated += ifuncmain1vispie ifuncmain1vispie.out
+
+$(objpfx)ifuncmain5pie.out: $(objpfx)ifuncmain5pie
+	$(elf-objpfx)$(rtld-installed-name) \
+	  --library-path $(rpath-link)$(patsubst %,:%,$(sysdep-library-path)) \
+	  $< > $@
+
+$(objpfx)ifuncmain5pie: $(objpfx)ifuncmain5pie.o $(objpfx)ifuncmod5.so
+	$(+link-pie)
+
+generated += ifuncmain5pie ifuncmain5pie.out
+
+$(objpfx)ifuncmain6pie.out: $(objpfx)ifuncmain6pie
+	$(elf-objpfx)$(rtld-installed-name) \
+	  --library-path $(rpath-link)$(patsubst %,:%,$(sysdep-library-path)) \
+	  $< > $@
+
+$(objpfx)ifuncmain6pie: $(objpfx)ifuncmain6pie.o $(objpfx)ifuncmod6.so
+	$(+link-pie)
+
+generated += ifuncmain6pie ifuncmain6pie.out
+
+$(objpfx)ifuncmain7pie.out: $(objpfx)ifuncmain7pie
+	$(elf-objpfx)$(rtld-installed-name) \
+	  --library-path $(rpath-link)$(patsubst %,:%,$(sysdep-library-path)) \
+	  $< > $@
+
+$(objpfx)ifuncmain7pie: $(objpfx)ifuncmain7pie.o
+	$(+link-pie)
+
+generated += ifuncmain7pie ifuncmain7pie.out
+endif
+
+$(objpfx)ifuncmain1: $(addprefix $(objpfx),ifuncmod1.so)
+$(objpfx)ifuncmain1pic: $(addprefix $(objpfx),ifuncmod1.so)
+$(objpfx)ifuncmain1staticpic: $(addprefix $(objpfx),ifuncdep1pic.o)
+$(objpfx)ifuncmain1static: $(addprefix $(objpfx),ifuncdep1.o)
+$(objpfx)ifuncmain1picstatic: $(addprefix $(objpfx),ifuncdep1pic.o)
+$(objpfx)ifuncmain1vis: $(addprefix $(objpfx),ifuncmod1.so)
+$(objpfx)ifuncmain1vispic: $(addprefix $(objpfx),ifuncmod1.so)
+$(objpfx)ifuncmain2: $(addprefix $(objpfx),ifuncdep2.o)
+$(objpfx)ifuncmain2pic: $(addprefix $(objpfx),ifuncdep2pic.o)
+$(objpfx)ifuncmain2static: $(addprefix $(objpfx),ifuncdep2.o)
+$(objpfx)ifuncmain2picstatic: $(addprefix $(objpfx),ifuncdep2pic.o)
+
+$(objpfx)ifuncmain3: $(libdl)
+$(objpfx)ifuncmain3.out: $(objpfx)ifuncmod3.so
+
+$(objpfx)ifuncmain5: $(addprefix $(objpfx),ifuncmod5.so)
+$(objpfx)ifuncmain5pic: $(addprefix $(objpfx),ifuncmod5.so)
+$(objpfx)ifuncmain5static: $(addprefix $(objpfx),ifuncdep5.o)
+$(objpfx)ifuncmain5staticpic: $(addprefix $(objpfx),ifuncdep5pic.o)
+$(objpfx)ifuncmain5picstatic: $(addprefix $(objpfx),ifuncdep5pic.o)
+
+$(objpfx)tst-unique1: $(libdl)
+$(objpfx)tst-unique1.out: $(objpfx)tst-unique1mod1.so \
+			  $(objpfx)tst-unique1mod2.so
+
+$(objpfx)tst-unique2: $(libdl) $(objpfx)tst-unique2mod1.so
+$(objpfx)tst-unique2.out: $(objpfx)tst-unique2mod2.so
+
+ifeq (yes,$(config-cflags-avx))
+CFLAGS-tst-audit4.c += -mavx
+CFLAGS-tst-auditmod4a.c += -mavx
+CFLAGS-tst-auditmod4b.c += -mavx
+CFLAGS-tst-auditmod6b.c += -mavx
+CFLAGS-tst-auditmod6c.c += -mavx
+CFLAGS-tst-auditmod7b.c += -mavx
+endif

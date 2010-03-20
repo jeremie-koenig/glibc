@@ -1,5 +1,6 @@
-# Copyright (C) 1996,1997,1998,1999,2001,2002,2003,2004,2005,2006
-#	Free Software Foundation, Inc.
+# Copyright (C) 1996, 1997, 1998, 1999, 2001, 2002, 2003, 2004, 2005, 2006,
+# 2009 Free Software Foundation, Inc.
+
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -76,4 +77,17 @@ endif
 
 ifeq ($(subdir),misc)
 sysdep_headers += sys/mtio.h
+endif
+
+
+ifeq ($(subdir),csu)
+routines += unwind-resume
+shared-only-routines += unwind-resume
+CFLAGS-unwind-resume.c += -fexceptions -fasynchronous-unwind-tables
+endif
+
+ifeq ($(subdir),rt)
+librt-sysdep_routines += rt-unwind-resume
+librt-shared-only-routines += rt-unwind-resume
+CFLAGS-rt-unwind-resume.c += -fexceptions -fasynchronous-unwind-tables
 endif
