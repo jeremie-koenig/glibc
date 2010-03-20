@@ -62,6 +62,9 @@ struct hurd_port
 
 /* Initialize *PORT to INIT.  */
 
+void _hurd_port_init (struct hurd_port *port, mach_port_t init);
+
+#ifdef __USE_EXTERN_INLINES
 _HURD_PORT_H_EXTERN_INLINE void
 _hurd_port_init (struct hurd_port *port, mach_port_t init)
 {
@@ -69,6 +72,7 @@ _hurd_port_init (struct hurd_port *port, mach_port_t init)
   port->users = NULL;
   port->port = init;
 }
+#endif
 
 
 /* Cleanup function for non-local exits.  */
@@ -77,6 +81,11 @@ extern void _hurd_port_cleanup (void *, jmp_buf, int);
 /* Get a reference to *PORT, which is locked.
    Pass return value and LINK to _hurd_port_free when done.  */
 
+mach_port_t
+_hurd_port_locked_get (struct hurd_port *port,
+		       struct hurd_userlink *link);
+
+#ifdef __USE_EXTERN_INLINES
 _HURD_PORT_H_EXTERN_INLINE mach_port_t
 _hurd_port_locked_get (struct hurd_port *port,
 		       struct hurd_userlink *link)
@@ -92,9 +101,15 @@ _hurd_port_locked_get (struct hurd_port *port,
   __spin_unlock (&port->lock);
   return result;
 }
+#endif
 
 /* Same, but locks PORT first.  */
 
+mach_port_t
+_hurd_port_get (struct hurd_port *port,
+		struct hurd_userlink *link);
+
+#ifdef __USE_EXTERN_INLINES
 _HURD_PORT_H_EXTERN_INLINE mach_port_t
 _hurd_port_get (struct hurd_port *port,
 		struct hurd_userlink *link)
@@ -106,10 +121,17 @@ _hurd_port_get (struct hurd_port *port,
   HURD_CRITICAL_END;
   return result;
 }
+#endif
 
 
 /* Free a reference gotten with `USED_PORT = _hurd_port_get (PORT, LINK);' */
 
+void
+_hurd_port_free (struct hurd_port *port,
+		 struct hurd_userlink *link,
+		 mach_port_t used_port);
+
+#ifdef __USE_EXTERN_INLINES
 _HURD_PORT_H_EXTERN_INLINE void
 _hurd_port_free (struct hurd_port *port,
 		 struct hurd_userlink *link,
@@ -129,11 +151,15 @@ _hurd_port_free (struct hurd_port *port,
   if (dealloc)
     __mach_port_deallocate (__mach_task_self (), used_port);
 }
+#endif
 
 
 /* Set *PORT's port to NEWPORT.  NEWPORT's reference is consumed by PORT->port.
    PORT->lock is locked.  */
 
+void _hurd_port_locked_set (struct hurd_port *port, mach_port_t newport);
+
+#ifdef __USE_EXTERN_INLINES
 _HURD_PORT_H_EXTERN_INLINE void
 _hurd_port_locked_set (struct hurd_port *port, mach_port_t newport)
 {
@@ -144,9 +170,13 @@ _hurd_port_locked_set (struct hurd_port *port, mach_port_t newport)
   if (old != MACH_PORT_NULL)
     __mach_port_deallocate (__mach_task_self (), old);
 }
+#endif
 
 /* Same, but locks PORT first.  */
 
+void _hurd_port_set (struct hurd_port *port, mach_port_t newport);
+
+#ifdef __USE_EXTERN_INLINES
 _HURD_PORT_H_EXTERN_INLINE void
 _hurd_port_set (struct hurd_port *port, mach_port_t newport)
 {
@@ -155,6 +185,7 @@ _hurd_port_set (struct hurd_port *port, mach_port_t newport)
   _hurd_port_locked_set (port, newport);
   HURD_CRITICAL_END;
 }
+#endif
 
 
 #endif	/* hurd/port.h */

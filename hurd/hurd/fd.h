@@ -60,6 +60,9 @@ extern struct mutex _hurd_dtable_lock; /* Locks those two variables.  */
    NULL.  The cell is unlocked; when ready to use it, lock it and check for
    it being unused.  */
 
+struct hurd_fd *_hurd_fd_get (int fd);
+
+#ifdef __USE_EXTERN_INLINES
 _HURD_FD_H_EXTERN_INLINE struct hurd_fd *
 _hurd_fd_get (int fd)
 {
@@ -90,6 +93,7 @@ _hurd_fd_get (int fd)
 
   return descriptor;
 }
+#endif
 
 
 /* Evaluate EXPR with the variable `descriptor' bound to a pointer to the
@@ -137,6 +141,9 @@ _hurd_fd_get (int fd)
 /* Check if ERR should generate a signal.
    Returns the signal to take, or zero if none.  */
 
+int _hurd_fd_error_signal (error_t err);
+
+#ifdef __USE_EXTERN_INLINES
 _HURD_FD_H_EXTERN_INLINE int
 _hurd_fd_error_signal (error_t err)
 {
@@ -153,11 +160,15 @@ _hurd_fd_error_signal (error_t err)
       return 0;
     }
 }
+#endif
 
 /* Handle an error from an RPC on a file descriptor's port.  You should
    always use this function to handle errors from RPCs made on file
    descriptor ports.  Some errors are translated into signals.  */
 
+error_t _hurd_fd_error (int fd, error_t err);
+
+#ifdef __USE_EXTERN_INLINES
 _HURD_FD_H_EXTERN_INLINE error_t
 _hurd_fd_error (int fd, error_t err)
 {
@@ -170,20 +181,28 @@ _hurd_fd_error (int fd, error_t err)
     }
   return err;
 }
+#endif
 
 /* Handle error code ERR from an RPC on file descriptor FD's port.
    Set `errno' to the appropriate error code, and always return -1.  */
 
+int __hurd_dfail (int fd, error_t err);
+
+#ifdef __USE_EXTERN_INLINES
 _HURD_FD_H_EXTERN_INLINE int
 __hurd_dfail (int fd, error_t err)
 {
   errno = _hurd_fd_error (fd, err);
   return -1;
 }
+#endif
 
 /* Likewise, but do not raise SIGPIPE on EPIPE if flags contain
    MSG_NOSIGNAL.  */
 
+int __hurd_sockfail (int fd, int flags, error_t err);
+
+#ifdef __USE_EXTERN_INLINES
 _HURD_FD_H_EXTERN_INLINE int
 __hurd_sockfail (int fd, int flags, error_t err)
 {
@@ -192,6 +211,7 @@ __hurd_sockfail (int fd, int flags, error_t err)
   errno = err;
   return -1;
 }
+#endif
 
 /* Set up *FD to have PORT its server port, doing appropriate ctty magic.
    Does no locking or unlocking.  */
