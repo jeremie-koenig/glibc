@@ -1,6 +1,8 @@
 #ifndef _UNISTD_H
 # include <posix/unistd.h>
 
+__BEGIN_DECLS
+
 libc_hidden_proto (_exit, __noreturn__)
 libc_hidden_proto (alarm)
 libc_hidden_proto (confstr)
@@ -61,6 +63,8 @@ extern int __chdir (__const char *__path);
 extern int __fchdir (int __fd);
 extern char *__getcwd (char *__buf, size_t __size);
 extern int __rmdir (const char *__path);
+extern int __execvpe (const char *file, char *const argv[],
+		      char *const envp[]);
 
 /* Get the canonical absolute name of the named directory, and put it in SIZE
    bytes of BUF.  Returns NULL if the directory couldn't be determined or
@@ -171,5 +175,7 @@ extern int __have_sock_cloexec;
    SOCK_CLOEXEC.  Avoid defining separate variables for all of them
    unless it is really necessary.  */
 #define __have_pipe2 __have_sock_cloexec
+
+__END_DECLS
 
 #endif

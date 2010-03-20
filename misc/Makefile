@@ -34,7 +34,7 @@ headers	:= sys/uio.h bits/uio.h sys/ioctl.h bits/ioctls.h bits/ioctl-types.h \
 	   bits/syslog.h bits/syslog-ldbl.h bits/syslog-path.h bits/error.h
 
 routines := brk sbrk sstk ioctl \
-	    readv writev \
+	    readv writev preadv preadv64 pwritev pwritev64 \
 	    setreuid setregid \
 	    seteuid setegid \
 	    getpagesize \
@@ -45,7 +45,7 @@ routines := brk sbrk sstk ioctl \
 	    gethostid sethostid \
 	    revoke vhangup \
 	    swapon swapoff mktemp mkstemp mkstemp64 mkdtemp \
-	    mkostemp mkostemp64 \
+	    mkostemp mkostemp64 mkstemps mkstemps64 mkostemps mkostemps64 \
 	    ualarm usleep \
 	    gtty stty \
 	    ptrace \

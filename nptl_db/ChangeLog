@@ -1,3 +1,31 @@
+2009-08-23  Roland McGrath  <roland@redhat.com>
+
+	* td_ta_map_lwp2thr.c (__td_ta_lookup_th_unique): Move ta_ok check
+	and LOG call back to ...
+	(td_ta_map_lwp2thr): ... here.
+	Reported by Maciej W. Rozycki <macro@codesourcery.com>.
+
+2009-05-25  Aurelien Jarno  <aurelien@aurel32.net>
+
+	[BZ #10200]
+	* db-symbols.awk: Use the last field for the symbol name instead
+	of the 8th one.
+
+2009-03-19  Roland McGrath  <roland@redhat.com>
+
+	* td_symbol_list.c (DB_LOOKUP_NAME, DB_LOOKUP_NAME_TH_UNIQUE):
+	Use STRINGIFY macro in place of #argument.
+
+2009-02-27  Roland McGrath  <roland@redhat.com>
+
+	* td_symbol_list.c (symbol_list_arr): Move initializer guts to ...
+	* db-symbols.h: ... here, new file.
+	* db-symbols.awk: New file.
+	* Makefile (distribute): Add them.
+	($(objpfx)db-symbols.out): New target.
+	(tests): Depend on it.
+	($(objpfx)db-symbols.v.i): New dependent rule.
+
 2009-02-06  Ulrich Drepper  <drepper@redhat.com>
 
 	* td_thr_get_info.c (td_thr_get_info): Initialize schedpolicy in

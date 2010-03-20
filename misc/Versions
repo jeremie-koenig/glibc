@@ -137,4 +137,10 @@ libc {
   GLIBC_2.7 {
     mkostemp; mkostemp64;
   }
+  GLIBC_2.10 {
+    preadv; preadv64; pwritev; pwritev64;
+  }
+  GLIBC_2.11 {
+    mkstemps; mkstemps64; mkostemps; mkostemps64;
+  }
 }

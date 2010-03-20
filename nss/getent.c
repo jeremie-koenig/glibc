@@ -24,6 +24,7 @@
 #include <ctype.h>
 #include <error.h>
 #include <grp.h>
+#include <gshadow.h>
 #include <libintl.h>
 #include <locale.h>
 #include <mcheck.h>
@@ -227,6 +228,70 @@ group_keys (int number, char *key[])
 	result = 2;
       else
 	print_group (grp);
+    }
+
+  return result;
+}
+
+/* This is for gshadow */
+static void
+print_gshadow (struct sgrp *sg)
+{
+  unsigned int i = 0;
+
+  printf ("%s:%s:",
+	  sg->sg_namp ? sg->sg_namp : "",
+	  sg->sg_passwd ? sg->sg_passwd : "");
+
+  while (sg->sg_adm[i] != NULL)
+    {
+      fputs_unlocked (sg->sg_adm[i], stdout);
+      ++i;
+      if (sg->sg_adm[i] != NULL)
+	putchar_unlocked (',');
+    }
+
+  putchar_unlocked (':');
+
+  i = 0;
+  while (sg->sg_mem[i] != NULL)
+    {
+      fputs_unlocked (sg->sg_mem[i], stdout);
+      ++i;
+      if (sg->sg_mem[i] != NULL)
+	putchar_unlocked (',');
+    }
+
+  putchar_unlocked ('\n');
+}
+
+static int
+gshadow_keys (int number, char *key[])
+{
+  int result = 0;
+  int i;
+
+  if (number == 0)
+    {
+      struct sgrp *sg;
+
+      setsgent ();
+      while ((sg = getsgent ()) != NULL)
+	print_gshadow (sg);
+      endsgent ();
+      return result;
+    }
+
+  for (i = 0; i < number; ++i)
+    {
+      struct sgrp *sg;
+
+      sg = getsgnam (key[i]);
+
+      if (sg == NULL)
+	result = 2;
+      else
+	print_gshadow (sg);
     }
 
   return result;
@@ -469,7 +534,7 @@ networks_keys (int number, char *key[])
   for (i = 0; i < number; ++i)
     {
       if (isdigit (key[i][0]))
-	net = getnetbyaddr (inet_addr (key[i]), AF_UNIX);
+	net = getnetbyaddr (ntohl (inet_addr (key[i])), AF_UNSPEC);
       else
 	net = getnetbyname (key[i]);
 
@@ -756,6 +821,7 @@ D(ahostsv6)
 D(aliases)
 D(ethers)
 D(group)
+D(gshadow)
 D(hosts)
 D(netgroup)
 D(networks)
@@ -839,9 +905,9 @@ more_help (int key, const char *text, void *input)
 
 	  fputs ("\n\n", fp);
 
-	  fprintf (fp, gettext ("\
+	  fputs (gettext ("\
 For bug reporting instructions, please see:\n\
-<http://www.gnu.org/software/libc/bugs.html>.\n"));
+<http://www.gnu.org/software/libc/bugs.html>.\n"), fp);
 
 	  if (fclose (fp) == 0)
 	    return doc;
