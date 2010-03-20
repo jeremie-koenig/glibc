@@ -1,5 +1,5 @@
 /* Implementation of the locale program according to POSIX 9945-2.
-   Copyright (C) 1995-1997, 1999-2007, 2008 Free Software Foundation, Inc.
+   Copyright (C) 1995-1997, 1999-2008, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@cygnus.com>, 1995.
 
@@ -84,9 +84,7 @@ static const struct argp_option options[] =
 };
 
 /* Short description of program.  */
-static const char doc[] = N_("Get locale-specific information.\v\
-For bug reporting instructions, please see:\n\
-<http://www.gnu.org/software/libc/bugs.html>.\n");
+static const char doc[] = N_("Get locale-specific information.");
 
 /* Strings for arguments in help texts.  */
 static const char args_doc[] = N_("NAME\n[-a|-m]");
@@ -94,10 +92,13 @@ static const char args_doc[] = N_("NAME\n[-a|-m]");
 /* Prototype for option handler.  */
 static error_t parse_opt (int key, char *arg, struct argp_state *state);
 
+/* Function to print some extra text in the help message.  */
+static char *more_help (int key, const char *text, void *input);
+
 /* Data structure to communicate with argp functions.  */
 static struct argp argp =
 {
-  options, parse_opt, args_doc, doc
+  options, parse_opt, args_doc, doc, NULL, more_help
 };
 
 
@@ -267,6 +268,23 @@ parse_opt (int key, char *arg, struct argp_state *state)
 }
 
 
+static char *
+more_help (int key, const char *text, void *input)
+{
+  switch (key)
+    {
+    case ARGP_KEY_HELP_EXTRA:
+      /* We print some extra information.  */
+      return strdup (gettext ("\
+For bug reporting instructions, please see:\n\
+<http://www.gnu.org/software/libc/bugs.html>.\n"));
+    default:
+      break;
+    }
+  return (char *) text;
+}
+
+
 /* Print the version information.  */
 static void
 print_version (FILE *stream, struct argp_state *state)
@@ -276,7 +294,7 @@ print_version (FILE *stream, struct argp_state *state)
 Copyright (C) %s Free Software Foundation, Inc.\n\
 This is free software; see the source for copying conditions.  There is NO\n\
 warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\
-"), "2008");
+"), "2009");
   fprintf (stream, gettext ("Written by %s.\n"), "Ulrich Drepper");
 }
 

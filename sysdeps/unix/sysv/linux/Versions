@@ -138,6 +138,17 @@ libc {
   GLIBC_2.9 {
     epoll_create1; inotify_init1;
   }
+  GLIBC_2.10 {
+    fallocate;
+  }
+  GLIBC_2.12 {
+    #errlist-compat	134
+    _sys_errlist; sys_errlist; _sys_nerr; sys_nerr;
+
+    ntp_gettimex;
+
+    recvmmsg;
+  }
   GLIBC_PRIVATE {
     # functions used in other libraries
     __syscall_rt_sigqueueinfo;
