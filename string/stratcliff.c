@@ -1,5 +1,5 @@
 /* Test for string function add boundaries of usable memory.
-   Copyright (C) 1996,1997,1999-2002,2003,2007 Free Software Foundation, Inc.
+   Copyright (C) 1996,1997,1999-2003,2007, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@cygnus.com>, 1996.
 
@@ -46,6 +46,7 @@
 # define STPNCPY stpncpy
 # define MEMCPY memcpy
 # define MEMPCPY mempcpy
+# define MEMCHR memchr
 #endif
 
 
@@ -128,10 +129,10 @@ do_test (void)
         }
       for (outer = nchars; outer >= MAX (0, nchars - 128); --outer)
         {
-          for (inner = MAX (outer, nchars - 64); inner < nchars; ++inner)
+	  for (inner = MAX (outer, nchars - 64); inner <= nchars; ++inner)
 	    {
-	      if (STRNLEN (&adr[outer], inner - outer + 1)
-		  != (size_t) (inner - outer + 1))
+	      if (STRNLEN (&adr[outer], inner - outer)
+		  != (size_t) (inner - outer))
 		{
 		  printf ("%s flunked bounded for outer = %d, inner = %d\n",
 			  STRINGIFY (STRNLEN), outer, inner);
@@ -205,6 +206,37 @@ do_test (void)
 	    }
         }
 
+      /* memchr test */
+      for (outer = nchars - 1; outer >= MAX (0, nchars - 128); --outer)
+        {
+	  for (middle = MAX (outer, nchars - 64); middle < nchars; ++middle)
+	    {
+	      adr[middle] = L('V');
+
+	      CHAR *cp = MEMCHR (&adr[outer], L('V'), 3 * size);
+
+	      if (cp - &adr[outer] != middle - outer)
+		{
+		  printf ("%s flunked for outer = %d, middle = %d\n",
+			  STRINGIFY (MEMCHR), outer, middle);
+		  result = 1;
+		}
+
+	      adr[middle] = L('T');
+	    }
+        }
+      for (outer = nchars; outer >= MAX (0, nchars - 128); --outer)
+        {
+	  CHAR *cp = MEMCHR (&adr[outer], L('V'), nchars - outer);
+
+	  if (cp != NULL)
+	    {
+	      printf ("%s flunked for outer = %d\n",
+		      STRINGIFY (MEMCHR), outer);
+	      result = 1;
+	    }
+        }
+
       /* This function only exists for single-byte characters.  */
 #ifndef WCSTEST
       /* rawmemchr test */
@@ -247,9 +279,9 @@ do_test (void)
 	    }
         }
 
-      /* strncpy tests */
+      /* strncpy/wcsncpy tests */
       adr[nchars - 1] = L('T');
-      for (outer = nchars - 1; outer >= MAX (0, nchars - 128); --outer)
+      for (outer = nchars; outer >= MAX (0, nchars - 128); --outer)
 	{
 	  size_t len;
 
@@ -323,6 +355,24 @@ do_test (void)
         }
 
       /* stpncpy/wcpncpy test */
+      adr[nchars - 1] = L('T');
+      for (outer = nchars; outer >= MAX (0, nchars - 128); --outer)
+	{
+	  size_t len;
+
+	  for (len = 0; len < nchars - outer; ++len)
+	    {
+	      if (STPNCPY (dest, &adr[outer], len) != dest + len
+		  || MEMCMP (dest, &adr[outer], len) != 0)
+		{
+		  printf ("outer %s flunked for outer = %d, len = %Zd\n",
+			  STRINGIFY (STPNCPY), outer, len);
+		  result = 1;
+		}
+	    }
+	}
+      adr[nchars - 1] = L('\0');
+
       for (outer = nchars - 1; outer >= MAX (0, nchars - 128); --outer)
         {
           for (middle = MAX (outer, nchars - 64); middle < nchars; ++middle)
@@ -346,7 +396,7 @@ do_test (void)
         }
 
       /* memcpy/wmemcpy test */
-      for (outer = nchars - 1; outer >= MAX (0, nchars - 128); --outer)
+      for (outer = nchars; outer >= MAX (0, nchars - 128); --outer)
 	for (inner = 0; inner < nchars - outer; ++inner)
 	  if (MEMCPY (dest, &adr[outer], inner) !=  dest)
 	    {
@@ -356,7 +406,7 @@ do_test (void)
 	    }
 
       /* mempcpy/wmempcpy test */
-      for (outer = nchars - 1; outer >= MAX (0, nchars - 128); --outer)
+      for (outer = nchars; outer >= MAX (0, nchars - 128); --outer)
 	for (inner = 0; inner < nchars - outer; ++inner)
 	  if (MEMPCPY (dest, &adr[outer], inner) !=  dest + inner)
 	    {
@@ -369,7 +419,7 @@ do_test (void)
 #ifndef WCSTEST
       /* memccpy test */
       memset (adr, '\0', nchars);
-      for (outer = nchars - 1; outer >= MAX (0, nchars - 128); --outer)
+      for (outer = nchars; outer >= MAX (0, nchars - 128); --outer)
 	for (inner = 0; inner < nchars - outer; ++inner)
 	  if (memccpy (dest, &adr[outer], L('\1'), inner) != NULL)
 	    {
