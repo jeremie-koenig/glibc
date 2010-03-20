@@ -1,4 +1,4 @@
-/* Copyright (C) 1991,1992,1993,1995-2006,2007 Free Software Foundation, Inc.
+/* Copyright (C) 1991-1993,1995-2007,2009,2010 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -29,9 +29,10 @@
 			if >=199309L, add IEEE Std 1003.1b-1993;
 			if >=199506L, add IEEE Std 1003.1c-1995;
 			if >=200112L, all of IEEE 1003.1-2004
+			if >=200809L, all of IEEE 1003.1-2008
    _XOPEN_SOURCE	Includes POSIX and XPG things.  Set to 500 if
 			Single Unix conformance is wanted, to 600 for the
-			upcoming sixth revision.
+			sixth revision, to 700 for the seventh revision.
    _XOPEN_SOURCE_EXTENDED XPG things and X/Open Unix extensions.
    _LARGEFILE_SOURCE	Some more functions for correct standard I/O.
    _LARGEFILE64_SOURCE	Additional functionality from LFS for large files.
@@ -65,6 +66,8 @@
    __USE_XOPEN_EXTENDED	Define X/Open Unix things.
    __USE_UNIX98		Define Single Unix V2 things.
    __USE_XOPEN2K        Define XPG6 things.
+   __USE_XOPEN2KXSI     Define XPG6 XSI things.
+   __USE_XOPEN2K8XSI    Define XPG7 XSI things.
    __USE_LARGEFILE	Define correct standard I/O things.
    __USE_LARGEFILE64	Define LFS things with separate names.
    __USE_FILE_OFFSET64	Define 64bit interface as default.
@@ -100,6 +103,9 @@
 #undef	__USE_XOPEN_EXTENDED
 #undef	__USE_UNIX98
 #undef	__USE_XOPEN2K
+#undef	__USE_XOPEN2KXSI
+#undef	__USE_XOPEN2K8
+#undef	__USE_XOPEN2K8XSI
 #undef	__USE_LARGEFILE
 #undef	__USE_LARGEFILE64
 #undef	__USE_FILE_OFFSET64
@@ -140,21 +146,22 @@
 /* If _BSD_SOURCE was defined by the user, favor BSD over POSIX.  */
 #if defined _BSD_SOURCE && \
     !(defined _POSIX_SOURCE || defined _POSIX_C_SOURCE || \
-      defined _XOPEN_SOURCE || defined _XOPEN_SOURCE_EXTENDED || \
-      defined _GNU_SOURCE || defined _SVID_SOURCE)
+      defined _XOPEN_SOURCE || defined _GNU_SOURCE || defined _SVID_SOURCE)
 # define __FAVOR_BSD	1
 #endif
 
 /* If _GNU_SOURCE was defined by the user, turn on all the other features.  */
 #ifdef _GNU_SOURCE
+# undef  _ISOC95_SOURCE
+# define _ISOC95_SOURCE	1
 # undef  _ISOC99_SOURCE
 # define _ISOC99_SOURCE	1
 # undef  _POSIX_SOURCE
 # define _POSIX_SOURCE	1
 # undef  _POSIX_C_SOURCE
-# define _POSIX_C_SOURCE	200112L
+# define _POSIX_C_SOURCE	200809L
 # undef  _XOPEN_SOURCE
-# define _XOPEN_SOURCE	600
+# define _XOPEN_SOURCE	700
 # undef  _XOPEN_SOURCE_EXTENDED
 # define _XOPEN_SOURCE_EXTENDED	1
 # undef	 _LARGEFILE64_SOURCE
@@ -171,8 +178,7 @@
    define _BSD_SOURCE and _SVID_SOURCE.  */
 #if (!defined __STRICT_ANSI__ && !defined _ISOC99_SOURCE && \
      !defined _POSIX_SOURCE && !defined _POSIX_C_SOURCE && \
-     !defined _XOPEN_SOURCE && !defined _XOPEN_SOURCE_EXTENDED && \
-     !defined _BSD_SOURCE && !defined _SVID_SOURCE)
+     !defined _XOPEN_SOURCE && !defined _BSD_SOURCE && !defined _SVID_SOURCE)
 # define _BSD_SOURCE	1
 # define _SVID_SOURCE	1
 #endif
@@ -201,9 +207,12 @@
 #  define _POSIX_C_SOURCE	2
 # elif defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) < 600
 #  define _POSIX_C_SOURCE	199506L
-# else
+# elif defined _XOPEN_SOURCE && (_XOPEN_SOURCE - 0) < 700
 #  define _POSIX_C_SOURCE	200112L
+# else
+#  define _POSIX_C_SOURCE	200809L
 # endif
+# define __USE_POSIX_IMPLICITLY	1
 #endif
 
 #if defined _POSIX_SOURCE || _POSIX_C_SOURCE >= 1 || defined _XOPEN_SOURCE
@@ -224,6 +233,16 @@
 
 #if (_POSIX_C_SOURCE - 0) >= 200112L
 # define __USE_XOPEN2K		1
+# undef __USE_ISOC95
+# define __USE_ISOC95		1
+# undef __USE_ISOC99
+# define __USE_ISOC99		1
+#endif
+
+#if (_POSIX_C_SOURCE - 0) >= 200809L
+# define __USE_XOPEN2K8		1
+# undef  _ATFILE_SOURCE
+# define _ATFILE_SOURCE	1
 #endif
 
 #ifdef	_XOPEN_SOURCE
@@ -234,7 +253,14 @@
 #  undef _LARGEFILE_SOURCE
 #  define _LARGEFILE_SOURCE	1
 #  if (_XOPEN_SOURCE - 0) >= 600
+#   if (_XOPEN_SOURCE - 0) >= 700
+#    define __USE_XOPEN2K8	1
+#    define __USE_XOPEN2K8XSI	1
+#   endif
 #   define __USE_XOPEN2K	1
+#   define __USE_XOPEN2KXSI	1
+#   undef __USE_ISOC95
+#   define __USE_ISOC95		1
 #   undef __USE_ISOC99
 #   define __USE_ISOC99		1
 #  endif
@@ -311,7 +337,7 @@
 /* Major and minor version number of the GNU C library package.  Use
    these macros to test for features in specific releases.  */
 #define	__GLIBC__	2
-#define	__GLIBC_MINOR__	9
+#define	__GLIBC_MINOR__	11
 
 #define __GLIBC_PREREQ(maj, min) \
 	((__GLIBC__ << 16) + __GLIBC_MINOR__ >= ((maj) << 16) + (min))

@@ -1,5 +1,5 @@
 /* Access to locale-dependent parameters.
-   Copyright (C) 1995-2002,2003,2004,2005 Free Software Foundation, Inc.
+   Copyright (C) 1995-2002,2003,2004,2005,2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -334,6 +334,7 @@ enum
   _NL_CTYPE_TRANSLIT_IGNORE_LEN,
   _NL_CTYPE_TRANSLIT_IGNORE,
   _NL_CTYPE_MAP_TO_NONASCII,
+  _NL_CTYPE_NONASCII_CASE,
   _NL_CTYPE_EXTRA_MAP_1,
   _NL_CTYPE_EXTRA_MAP_2,
   _NL_CTYPE_EXTRA_MAP_3,
@@ -567,7 +568,8 @@ enum
 
 /* This macro produces an item you can pass to `nl_langinfo' or
    `nl_langinfo_l' to get the name of the locale in use for CATEGORY.  */
-#define _NL_LOCALE_NAME(category)	_NL_ITEM ((category), -1)
+#define _NL_LOCALE_NAME(category)	_NL_ITEM ((category),		      \
+						  _NL_ITEM_INDEX (-1))
 #ifdef __USE_GNU
 # define NL_LOCALE_NAME(category)	_NL_LOCALE_NAME (category)
 #endif
@@ -582,7 +584,7 @@ enum
 extern char *nl_langinfo (nl_item __item) __THROW;
 
 
-#ifdef	__USE_GNU
+#ifdef	__USE_XOPEN2K
 /* This interface is for the extended locale model.  See <locale.h> for
    more information.  */
 
@@ -590,7 +592,7 @@ extern char *nl_langinfo (nl_item __item) __THROW;
 # include <xlocale.h>
 
 /* Just like nl_langinfo but get the information from the locale object L.  */
-extern char *nl_langinfo_l (nl_item __item, __locale_t l);
+extern char *nl_langinfo_l (nl_item __item, __locale_t __l);
 #endif
 
 __END_DECLS
