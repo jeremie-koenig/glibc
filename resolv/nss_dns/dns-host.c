@@ -1,4 +1,4 @@
-/* Copyright (C) 1996-2004, 2007, 2008 Free Software Foundation, Inc.
+/* Copyright (C) 1996-2004, 2007, 2008, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Extended from original form by Ulrich Drepper <drepper@cygnus.com>, 1996.
 
@@ -198,8 +198,14 @@ _nss_dns_gethostbyname3_r (const char *name, int af, struct hostent *result,
 			  1024, &host_buffer.ptr, NULL, NULL, NULL);
   if (n < 0)
     {
-      status = (errno == ECONNREFUSED
-		? NSS_STATUS_UNAVAIL : NSS_STATUS_NOTFOUND);
+      if (errno == ESRCH)
+	{
+	  status = NSS_STATUS_TRYAGAIN;
+	  h_errno = TRY_AGAIN;
+	}
+      else
+	status = (errno == ECONNREFUSED
+		  ? NSS_STATUS_UNAVAIL : NSS_STATUS_NOTFOUND);
       *h_errnop = h_errno;
       if (h_errno == TRY_AGAIN)
 	*errnop = EAGAIN;
@@ -304,8 +310,14 @@ _nss_dns_gethostbyname4_r (const char *name, struct gaih_addrtuple **pat,
 			      &ans2p, &nans2p, &resplen2);
   if (n < 0)
     {
-      status = (errno == ECONNREFUSED
-		? NSS_STATUS_UNAVAIL : NSS_STATUS_NOTFOUND);
+      if (errno == ESRCH)
+	{
+	  status = NSS_STATUS_TRYAGAIN;
+	  h_errno = TRY_AGAIN;
+	}
+      else
+	status = (errno == ECONNREFUSED
+		  ? NSS_STATUS_UNAVAIL : NSS_STATUS_NOTFOUND);
       *herrnop = h_errno;
       if (h_errno == TRY_AGAIN)
 	*errnop = EAGAIN;
@@ -363,6 +375,19 @@ _nss_dns_gethostbyaddr2_r (const void *addr, socklen_t len, int af,
   size_t size;
   int n, status;
   int olderr = errno;
+
+ uintptr_t pad = -(uintptr_t) buffer % __alignof__ (struct host_data);
+ buffer += pad;
+ buflen = buflen > pad ? buflen - pad : 0;
+
+ if (__builtin_expect (buflen < sizeof (struct host_data), 0))
+   {
+     *errnop = ERANGE;
+     *h_errnop = NETDB_INTERNAL;
+     return NSS_STATUS_TRYAGAIN;
+   }
+
+ host_data = (struct host_data *) buffer;
 
   if (__res_maybe_init (&_res, 0) == -1)
     return NSS_STATUS_UNAVAIL;
@@ -799,7 +824,7 @@ getanswer_r (const querybuf *answer, int anslen, const char *qname, int qtype,
       switch (type)
 	{
 	case T_PTR:
-	  if (__builtin_expect (__strcasecmp (tname, bp) != 0, 0))
+	  if (__builtin_expect (strcasecmp (tname, bp) != 0, 0))
 	    {
 	      syslog (LOG_NOTICE | LOG_AUTH, AskedForGot, qname, bp);
 	      cp += n;
@@ -853,7 +878,8 @@ getanswer_r (const querybuf *answer, int anslen, const char *qname, int qtype,
 		}
 	      bp += n;
 	      linebuflen -= n;
-	      map_v4v6_hostent (result, &bp, &linebuflen);
+	      if (map_v4v6_hostent (result, &bp, &linebuflen))
+		goto too_small;
 	    }
 	  *h_errnop = NETDB_SUCCESS;
 	  return NSS_STATUS_SUCCESS;
@@ -928,7 +954,8 @@ getanswer_r (const querybuf *answer, int anslen, const char *qname, int qtype,
 	}
 
       if (have_to_map)
-	map_v4v6_hostent (result, &bp, &linebuflen);
+	if (map_v4v6_hostent (result, &bp, &linebuflen))
+	  goto too_small;
       *h_errnop = NETDB_SUCCESS;
       return NSS_STATUS_SUCCESS;
     }
