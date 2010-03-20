@@ -1,5 +1,4 @@
-# Copyright (C) 2002,2003,2004,2005,2006,2007,2008
-#	Free Software Foundation, Inc.
+# Copyright (C) 2002-2008,2009 Free Software Foundation, Inc.
 # This file is part of the GNU C Library.
 
 # The GNU C Library is free software; you can redistribute it and/or
@@ -28,10 +27,11 @@ extra-libs := libpthread
 extra-libs-others := $(extra-libs)
 install-lib-ldscripts := libpthread.so
 
-routines = alloca_cutoff forward libc-lowlevellock libc-cancellation
+routines = alloca_cutoff forward libc-lowlevellock libc-cancellation \
+	   libc-cleanup
 shared-only-routines = forward
 
-libpthread-routines = init vars events version \
+libpthread-routines = nptl-init vars events version \
 		      pthread_create pthread_exit pthread_detach \
 		      pthread_join pthread_tryjoin pthread_timedjoin \
 		      pthread_self pthread_equal pthread_yield \
@@ -86,7 +86,7 @@ libpthread-routines = init vars events version \
 		      pthread_barrierattr_setpshared \
 		      pthread_key_create pthread_key_delete \
 		      pthread_getspecific pthread_setspecific \
-		      pthread_sigmask pthread_kill \
+		      pthread_sigmask pthread_kill pthread_sigqueue \
 		      pthread_cancel pthread_testcancel \
 		      pthread_setcancelstate pthread_setcanceltype \
 		      pthread_once \
@@ -139,8 +139,8 @@ CFLAGS-pthread_atfork.c = -DNOT_IN_libc
 # we have to compile some files with exception handling enabled, some
 # even with asynchronous unwind tables.
 
-# init.c contains sigcancel_handler().
-CFLAGS-init.c = -fexceptions -fasynchronous-unwind-tables
+# nptl-init.c contains sigcancel_handler().
+CFLAGS-nptl-init.c = -fexceptions -fasynchronous-unwind-tables
 # The unwind code itself,
 CFLAGS-unwind.c = -fexceptions
 CFLAGS-unwind-forcedunwind.c = -fexceptions -fasynchronous-unwind-tables
@@ -216,7 +216,7 @@ tests = tst-typesizes \
 	tst-once1 tst-once2 tst-once3 tst-once4 \
 	tst-key1 tst-key2 tst-key3 tst-key4 \
 	tst-sem1 tst-sem2 tst-sem3 tst-sem4 tst-sem5 tst-sem6 tst-sem7 \
-	tst-sem8 tst-sem9 tst-sem10 tst-sem11 tst-sem12 \
+	tst-sem8 tst-sem9 tst-sem10 tst-sem11 tst-sem12 tst-sem13 \
 	tst-barrier1 tst-barrier2 tst-barrier3 tst-barrier4 \
 	tst-align tst-align2 tst-align3 \
 	tst-basic1 tst-basic2 tst-basic3 tst-basic4 tst-basic5 tst-basic6 \
@@ -479,6 +479,7 @@ $(objpfx)tst-fini1: $(shared-thread-library) $(objpfx)tst-fini1mod.so
 ifeq (yes,$(build-shared))
 $(objpfx)tst-cond11: $(common-objpfx)rt/librt.so
 $(objpfx)tst-cond19: $(common-objpfx)rt/librt.so
+$(objpfx)tst-sem5: $(common-objpfx)rt/librt.so
 $(objpfx)tst-cancel17: $(common-objpfx)rt/librt.so
 $(objpfx)tst-cancelx17: $(common-objpfx)rt/librt.so
 $(objpfx)tst-cancel18: $(common-objpfx)rt/librt.so
@@ -492,6 +493,7 @@ $(objpfx)tst-_res1: $(objpfx)tst-_res1mod2.so $(shared-thread-library)
 else
 $(objpfx)tst-cond11: $(common-objpfx)rt/librt.a
 $(objpfx)tst-cond19: $(common-objpfx)rt/librt.a
+$(objpfx)tst-sem5: $(common-objpfx)rt/librt.a
 $(objpfx)tst-cancel17: $(common-objpfx)rt/librt.a
 $(objpfx)tst-cancelx17: $(common-objpfx)rt/librt.a
 $(objpfx)tst-cancel18: $(common-objpfx)rt/librt.a
