@@ -1,6 +1,6 @@
-/* Copyright (C) 2009 Free Software Foundation, Inc.
+/* Selective file content synch'ing.
+   Copyright (C) 2006, 2007, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
-   Contributed by Jakub Jelinek <jakub@redhat.com>.
 
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -18,24 +18,27 @@
    02111-1307 USA.  */
 
 #include <errno.h>
+#include <fcntl.h>
+#include <sys/types.h>
+
 #include <sysdep.h>
-#include <setjmp.h>
-#include <bits/setjmp.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
+#include <sys/syscall.h>
 
-#define __longjmp ____longjmp_chk
 
-#define CHECK_SP(env, guard) \
-  do									\
-    {									\
-      uintptr_t cur_sp;							\
-      uintptr_t new_sp = env->__gregs[9];				\
-      __asm ("lr %0, %%r15" : "=r" (cur_sp));				\
-      new_sp ^= guard;							\
-      if (new_sp < cur_sp)						\
-	__fortify_fail ("longjmp causes uninitialized stack frame");	\
-    } while (0)
+#if defined __NR_sync_file_range2
+int
+sync_file_range (int fd, __off64_t from, __off64_t to, unsigned int flags)
+{
+  return INLINE_SYSCALL (sync_file_range2, 4, fd, flags, from, to);
+}
+#else
+int
+sync_file_range (int fd, __off64_t from, __off64_t to, unsigned int flags)
+{
+  __set_errno (ENOSYS);
+  return -1;
+}
+stub_warning (sync_file_range)
 
-#include "__longjmp.c"
+# include <stub-tag.h>
+#endif

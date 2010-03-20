@@ -72,7 +72,34 @@ extern void _fini (void);
 /* These functions are passed to __libc_start_main by the startup code.
    These get statically linked into each program.  For dynamically linked
    programs, this module will come from libc_nonshared.a and differs from
-   the libc.a module in that it doesn't call the preinit array.  */
+   the libc.a module in that it doesn't call the preinit array and performs
+   explicit IREL{,A} relocations.  */
+
+
+#ifndef LIBC_NONSHARED
+void
+__libc_csu_irel (void)
+{
+# ifdef USE_MULTIARCH
+#  ifdef ELF_MACHINE_IRELA
+  {
+    const size_t size = __rela_iplt_end - __rela_iplt_start;
+    for (size_t i = 0; i < size; i++)
+      elf_irela (&__rela_iplt_start [i]);
+  }
+#  endif
+
+#  ifdef ELF_MACHINE_IREL
+  {
+    const size_t size = __rel_iplt_end - __rel_iplt_start;
+    for (size_t i = 0; i < size; i++)
+      elf_irel (&__rel_iplt_start [i]);
+  }
+#  endif
+# endif
+}
+#endif
+
 
 void
 __libc_csu_init (int argc, char **argv, char **envp)
@@ -80,24 +107,8 @@ __libc_csu_init (int argc, char **argv, char **envp)
   /* For dynamically linked executables the preinit array is executed by
      the dynamic linker (before initializing any shared object.  */
 
-#if defined USE_MULTIARCH && !defined LIBC_NONSHARED
-# ifdef ELF_MACHINE_IRELA
-  {
-    const size_t size = __rela_iplt_end - __rela_iplt_start;
-    for (size_t i = 0; i < size; i++)
-      elf_irela (&__rela_iplt_start [i]);
-  }
-# endif
-
-# ifdef ELF_MACHINE_IREL
-  {
-    const size_t size = __rel_iplt_end - __rel_iplt_start;
-    for (size_t i = 0; i < size; i++)
-      elf_irel (&__rel_iplt_start [i]);
-  }
-# endif
-
-  /* For static executables, preinit happens rights before init.  */
+#ifndef LIBC_NONSHARED
+  /* For static executables, preinit happens right before init.  */
   {
     const size_t size = __preinit_array_end - __preinit_array_start;
     size_t i;

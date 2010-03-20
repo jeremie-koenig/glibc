@@ -1,13 +1,11 @@
 #include "init-arch.h"
 
 #define STRCASESTR __strcasestr_sse2
-#undef libc_hidden_builtin_def
-#define libc_hidden_builtin_def(name) \
-  __hidden_ver1 (__strcasestr_sse2, __GI_strcasestr, __strcasestr_sse2);
 
 #include "string/strcasestr.c"
 
-extern char *__strcasestr_sse42 (const char *, const char *);
+extern char *__strcasestr_sse42 (const char *, const char *) attribute_hidden;
+extern __typeof (__strcasestr_sse2) __strcasestr_sse2 attribute_hidden;
 
 #if 1
 libc_ifunc (__strcasestr,

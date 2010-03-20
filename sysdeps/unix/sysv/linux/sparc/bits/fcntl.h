@@ -1,5 +1,5 @@
 /* O_*, F_*, FD_* bit values for Linux/SPARC.
-   Copyright (C) 1995, 1996, 1997, 1998, 2000, 2003, 2004, 2006, 2007
+   Copyright (C) 1995-1998, 2000, 2003, 2004, 2006, 2007, 2009, 2010
    Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -29,7 +29,7 @@
 #endif
 
 /* open/fcntl - O_SYNC is only implemented on blocks devices and on files
-   located on an ext2 file system */
+   located on a few file systems.  */
 #define O_RDONLY	0x0000
 #define O_WRONLY	0x0001
 #define O_RDWR		0x0002
@@ -39,17 +39,19 @@
 #define O_CREAT		0x0200	/* not fcntl */
 #define O_TRUNC		0x0400	/* not fcntl */
 #define O_EXCL		0x0800	/* not fcntl */
-#define O_SYNC		0x2000
+#define O_SYNC		0x802000
 #define O_NONBLOCK	0x4000
 #define O_NDELAY	(0x0004 | O_NONBLOCK)
 #define O_NOCTTY	0x8000	/* not fcntl */
 
-#ifdef __USE_GNU
+#ifdef __USE_XOPEN2K8
 # define O_DIRECTORY	0x10000 /* must be a directory */
 # define O_NOFOLLOW	0x20000 /* don't follow links */
+# define O_CLOEXEC	0x400000 /* Set close_on_exit.  */
+#endif
+#ifdef __USE_GNU
 # define O_DIRECT	0x100000 /* direct disk access hint */
 # define O_NOATIME	0x200000 /* Do not set atime.  */
-# define O_CLOEXEC	0x400000 /* Set close_on_exit.  */
 #endif
 
 #ifdef __USE_LARGEFILE64
@@ -64,16 +66,8 @@
    operations.  We define the symbols here but let them do the same as
    O_SYNC since this is a superset.  */
 #if defined __USE_POSIX199309 || defined __USE_UNIX98
-# define O_DSYNC	O_SYNC	/* Synchronize data.  */
+# define O_DSYNC	0x2000	/* Synchronize data.  */
 # define O_RSYNC	O_SYNC	/* Synchronize read operations.  */
-#endif
-
-/* For now Linux has synchronisity options for data and read operations.
-   We define the symbols here but let them do the same as O_SYNC since
-   this is a superset.  */
-#if defined __USE_POSIX199309 || defined __USE_UNIX98
-# define O_DSYNC        O_SYNC  /* Synchronize data.  */
-# define O_RSYNC        O_SYNC  /* Synchronize read operations.  */
 #endif
 
 /* Values for the second argument to `fcntl'.  */
@@ -82,9 +76,9 @@
 #define F_SETFD		2	/* Set file descriptor flags.  */
 #define F_GETFL		3	/* Get file status flags.  */
 #define F_SETFL		4	/* Set file status flags.  */
-#if defined __USE_BSD || defined __USE_UNIX98
-# define F_GETOWN	5	/* Get owner of socket (receiver of SIGIO).  */
-# define F_SETOWN	6	/* Set owner of socket (receiver of SIGIO).  */
+#if defined __USE_BSD || defined __USE_UNIX98 || defined __USE_XOPEN2K8
+# define F_GETOWN	5	/* Get owner (process receiving SIGIO).  */
+# define F_SETOWN	6	/* Set owner (process receiving SIGIO).  */
 #endif
 #ifndef __USE_FILE_OFFSET64
 # define F_GETLK	7	/* Get record locking info.  */
@@ -99,12 +93,16 @@
 #ifdef __USE_GNU
 # define F_SETSIG	10	/* Set number of signal to be sent.  */
 # define F_GETSIG	11	/* Get number of signal to be sent.  */
+# define F_SETOWN_EX	15	/* Set owner (thread receiving SIGIO).  */
+# define F_GETOWN_EX	16	/* Get owner (thread receiving SIGIO).  */
 #endif
 
 #ifdef __USE_GNU
 # define F_SETLEASE     1024	/* Set a lease.  */
 # define F_GETLEASE     1025	/* Enquire what lease is active.  */
 # define F_NOTIFY       1026	/* Request notfications on a directory.  */
+#endif
+#ifdef __USE_XOPEN2K8
 # define F_DUPFD_CLOEXEC 1030	/* Duplicate file descriptor with
 				   close-on-exit set.  */
 #endif
@@ -185,6 +183,24 @@ struct flock64
   };
 #endif
 
+#ifdef __USE_GNU
+/* Owner types.  */
+enum __pid_type
+  {
+    F_OWNER_TID = 0,		/* Kernel thread.  */
+    F_OWNER_PID,		/* Process.  */
+    F_OWNER_PGRP,		/* Process group.  */
+    F_OWNER_GID = F_OWNER_PGRP	/* Alternative, obsolete name.  */
+  };
+
+/* Structure to use with F_GETOWN_EX and F_SETOWN_EX.  */
+struct f_owner_ex
+  {
+    enum __pid_type type;	/* Owner type of ID.  */
+    __pid_t pid;		/* ID of owner.  */
+  };
+#endif
+
 /* Define some more compatibility macros to be backward compatible with
    BSD systems which did not managed to hide these kernel macros.  */
 #ifdef	__USE_BSD
@@ -237,7 +253,7 @@ extern ssize_t readahead (int __fd, __off64_t __offset, size_t __count)
 
 
 /* Selective file content synch'ing.  */
-extern int sync_file_range (int __fd, __off64_t __from, __off64_t __to,
+extern int sync_file_range (int __fd, __off64_t __offset, __off64_t __count,
 			    unsigned int __flags);
 
 
@@ -259,8 +275,8 @@ extern ssize_t tee (int __fdin, int __fdout, size_t __len,
 extern int fallocate (int __fd, int __mode, __off_t __offset, __off_t __len);
 # else
 #  ifdef __REDIRECT
-extern int __REDIRECT (fallocate, (int __fd, int __mode, __off_t __offset,
-				   __off_t __len),
+extern int __REDIRECT (fallocate, (int __fd, int __mode, __off64_t __offset,
+				   __off64_t __len),
 		       fallocate64);
 #  else
 #   define fallocate fallocate64

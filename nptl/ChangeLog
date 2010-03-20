@@ -1,3 +1,189 @@
+2010-01-15  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/i386/i486/pthread_cond_timedwait.S:
+	Fix unwind info.
+	* sysdeps/unix/sysv/linux/i386/i486/pthread_cond_wait.S: Likewise.
+
+2010-01-15  Michal Schmidt  <mschmidt@redhat.com>
+
+	* sysdeps/unix/sysv/linux/i386/i486/pthread_cond_timedwait.S:
+	Fix pthread_cond_timedwait with requeue-PI.
+	* sysdeps/unix/sysv/linux/i386/i486/pthread_cond_wait.S:
+	Fix pthread_cond_wait with requeue-PI.
+
+2010-01-14  Ulrich Drepper  <drepper@redhat.com>
+
+	* Versions: Add pthread_mutex_consistent, pthread_mutexattr_getrobust,
+	and pthread_mutexattr_setrobust for GLIBC_2.12.
+	* pthread_mutex_consistent.c: Define alias pthread_mutex_consistent.
+	* pthread_mutexattr_getrobust.c: Define alias
+	pthread_mutexattr_getrobust.
+	* pthread_mutexattr_setrobust.c: Define alias
+	pthread_mutexattr_setrobust.
+
+2010-01-12  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/pthread/pthread.h: Cleanup.  Fix up for XPG7.
+
+2010-01-08  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/pthread/pthread.h: Fix pthread_mutex_consistent declaration.
+
+2009-12-18  Thomas Schwinge  <thomas@codesourcery.com>
+
+	* sysdeps/unix/sysv/linux/s390/s390-32/pt-initfini.c (_init): Don't
+	call __gmon_start__.
+	* sysdeps/unix/sysv/linux/s390/s390-64/pt-initfini.c (_init): Likewise.
+
+2009-12-17  Ulrich Drepper  <drepper@redhat.com>
+
+	* pthread_rwlock_init.c (__pthread_rwlock_init): Simplify code by
+	using memset.
+
+2009-12-01  Dinakar Guniguntala  <dino@in.ibm.com>
+
+	* sysdeps/unix/sysv/linux/i386/i486/lowlevellock.h: Define
+	FUTEX_WAIT_REQUEUE_PI and FUTEX_CMP_REQUEUE_PI.
+	* sysdeps/unix/sysv/linux/i386/i486/pthread_cond_broadcast.S: If mutex
+	is a non robust PI mutex, then use FUTEX_CMP_REQUEUE_PI.
+	* sysdeps/unix/sysv/linux/i386/i486/pthread_cond_signal.S: Likewise.
+	* sysdeps/unix/sysv/linux/i386/i486/pthread_cond_timedwait.S: If mutex
+	is a non robust PI mutex, then use FUTEX_WAIT_REQUEUE_PI.
+	* sysdeps/unix/sysv/linux/i386/i486/pthread_cond_wait.S: Likewise.
+
+2009-12-12  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/i386/i486/sem_timedwait.S (sem_timedwait):
+	Don't update nwaiters after invalid timeout is recognized.
+
+2009-11-27  Thomas Schwinge  <thomas@codesourcery.com>
+
+	* sysdeps/unix/sysv/linux/sh/pt-initfini.c (_init): Don't call
+	__gmon_start__.
+
+2009-11-27  Andreas Schwab  <schwab@redhat.com>
+
+	* sysdeps/unix/sysv/linux/x86_64/cancellation.S: Reload
+	THREAD_SELF->cancelhandling after returning from futex call.
+
+2009-11-24  Ulrich Drepper  <drepper@redhat.com>
+
+	* tst-sem13.c: New file.
+	* Makefile (tests): Add tst-sem13.
+
+2009-11-22  Roland McGrath  <roland@redhat.com>
+
+	* sysdeps/unix/sysv/linux/i386/dl-sysdep.h: # include "i686/dl-sysdep.h"
+	instead of recapitulating its contents.
+
+2009-11-18  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/i386/i486/pthread_cond_broadcast.S: Minor
+	optimizations and cleanups.
+
+2009-11-18  Dinakar Guniguntala  <dino@in.ibm.com>
+
+	* sysdeps/unix/sysv/linux/i386/i486/pthread_cond_broadcast.S:
+	Remove redundant code. Fix cfi offsets.
+	* sysdeps/unix/sysv/linux/i386/i486/pthread_cond_signal.S:
+	Fix cfi offsets.
+
+2009-11-17  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/x86_64/pthread_cond_timedwait.S: Minimally
+	reduce size of unwind info.
+
+	* sysdeps/unix/sysv/linux/i386/i486/pthread_cond_wait.S: Convert to use
+	cfi directives.
+	* sysdeps/unix/sysv/linux/i386/i486/pthread_cond_timedwait.S: Likewise.
+	Based on a patch by Dinakar Guniguntala <dino@in.ibm.com>.
+
+2009-11-03  Andreas Schwab  <schwab@linux-m68k.org>
+
+	[BZ #4457]
+	* sysdeps/pthread/unwind-resume.c: Include <libgcc_s.h> and use
+	LIBGCC_S_SO.
+	* sysdeps/pthread/unwind-forcedunwind.c: Likewise.
+
+2009-10-30  Ulrich Drepper  <drepper@redhat.com>
+
+	* tst-sem11.c (main): Rewrite to avoid aliasing problems.
+
+	[BZ #3270]
+	* allocatestack.c (__nptl_setxid): Perform the operation in multiple
+	steps to avoid races with creation and terminations.
+	* nptl-init.c (sighandler_setxid): Adjust.
+	Patch by Daniel Jacobowitz.
+
+2009-09-07  Andreas Schwab  <schwab@redhat.com>
+
+	* sysdeps/pthread/bits/libc-lock.h (BP_SYM): Remove space before paren.
+
+2009-09-02  Suzuki K P  <suzuki@in.ibm.com>
+	    Joseph Myers  <joseph@codesourcery.com>
+
+	[BZ #7094]
+	* sysdeps/unix/sysv/linux/timer_create.c (timer_create):
+	Initialize the sigev_notify field for newly created timer to make sure
+	the timer gets deleted from the active timer's list upon timer_delete.
+
+2009-08-27  Andrew Stubbs  <ams@codesourcery.com>
+
+	* sysdeps/unix/sysv/linux/sh/lowlevellock.S (__lll_timedlock_wait):
+	Correct a logic error.
+
+2009-08-25  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/x86_64/tls.h (RTLD_ENABLE_FOREIGN_CALL): Store old value
+	of the field in local variables.
+	(RTLD_FINALIZE_FOREIGN_CALL): Restore rtld_must_xmm_save from local
+	variable and don't unconditionally clear it.
+
+2009-08-24  Ulrich Drepper  <drepper@redhat.com>
+
+	* pthread_create.c (start_thread): Hint to the kernel that memory for
+	the stack can be reused.  We do not mark all the memory.  The part
+	still in use and some reserve are kept.
+
+2009-08-23  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/bits/posix_opt.h: Clean up namespace.
+
+2009-08-11  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/x86_64/pthread_rwlock_unlock.S: Add CFI
+	directives.
+
+2009-08-10  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/x86_64/pthread_rwlock_rdlock.S: Add CFI
+	directives.
+	* sysdeps/unix/sysv/linux/x86_64/pthread_rwlock_wrlock.S: Likewise.
+
+2009-08-10  Andreas Schwab  <schwab@redhat.com>
+
+	* sysdeps/unix/sysv/linux/x86_64/pthread_cond_signal.S
+	(__pthread_cond_signal): Don't clobber register used for syscall
+	number.
+
+2009-08-08  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/x86_64/sem_timedwait.S (sem_timedwait):
+	Optimize code path used when FUTEX_CLOCK_REALTIME is supported.
+
+	* sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S
+	(__pthread_cond_wait): Optimize by avoiding use of callee-safe
+	register.
+
+2009-08-07  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/x86_64/sem_wait.S: Little optimizations
+	enabled by the special *_asynccancel functions.
+	* sysdeps/unix/sysv/linux/x86_64/pthread_cond_timedwait.S: Likewise.
+	* sysdeps/unix/sysv/linux/x86_64/pthread_cond_wait.S: Likewise.
+
+	* sysdeps/unix/sysv/linux/x86_64/cancellation.S: Include lowlevellock.h.
+
 2009-08-04  Ulrich Drepper  <drepper@redhat.com>
 
 	* sysdeps/unix/sysv/linux/x86_64/cancellation.S: New file.
@@ -1808,9 +1994,9 @@
 	* sysdeps/unix/sysv/linux/sh/bits/pthreadtypes.h: Include endian.h.
 	Split __flags into __flags, __shared, __pad1 and __pad2.
 	* sysdeps/unix/sysv/linux/sh/libc-lowlevellock.S: Use private
-        futexes if they are available.
+	futexes if they are available.
 	* sysdeps/unix/sysv/linux/sh/lowlevellock.S: Adjust so that change
-        in libc-lowlevellock.S allow using private futexes.
+	in libc-lowlevellock.S allow using private futexes.
 	* sysdeps/unix/sysv/linux/sh/lowlevellock.h: Define
 	FUTEX_PRIVATE_FLAG.  Add additional parameter to lll_futex_wait,
 	lll_futex_timed_wait and lll_futex_wake.  Change lll_futex_wait
@@ -1818,12 +2004,12 @@
 	lll_private_futex_timed_wait and lll_private_futex_wake.
 	(lll_robust_mutex_unlock): Fix typo.
 	* sysdeps/unix/sysv/linux/sh/pthread_barrier_wait.S: Use private
-        field in futex command setup.
+	field in futex command setup.
 	* sysdeps/unix/sysv/linux/sh/pthread_cond_timedwait.S: Use
 	COND_NWAITERS_SHIFT instead of COND_CLOCK_BITS.
 	* sysdeps/unix/sysv/linux/sh/pthread_cond_wait.S: Likewise.
 	* sysdeps/unix/sysv/linux/sh/pthread_once.S: Use private futexes
-        if they are available.  Remove clear_once_control.
+	if they are available.  Remove clear_once_control.
 	* sysdeps/unix/sysv/linux/sh/pthread_rwlock_rdlock.S: Use private
 	futexes if they are available.
 	* sysdeps/unix/sysv/linux/sh/pthread_rwlock_timedrdlock.S: Likewise.
@@ -1834,7 +2020,7 @@
 	Wake only when there are waiters.
 	* sysdeps/unix/sysv/linux/sh/sem_wait.S: Add private futex
 	support.  Indicate that there are waiters.  Remove unnecessary
-        extra cancellation test.
+	extra cancellation test.
 	* sysdeps/unix/sysv/linux/sh/sem_timedwait.S: Likewise.  Removed
 	left-over duplication of __sem_wait_cleanup.
 
@@ -2548,14 +2734,14 @@
 	* tst-cancel25.c: New file.
 
 2006-09-05  Jakub Jelinek  <jakub@redhat.com>
-            Ulrich Drepper  <drepper@redhat.com>
+	    Ulrich Drepper  <drepper@redhat.com>
 
 	* sysdeps/pthread/gai_misc.h (GAI_MISC_NOTIFY): Don't decrement
 	counterp if it is already zero.
 	* sysdeps/pthread/aio_misc.h (AIO_MISC_NOTIFY): Likewise..
 
 2006-03-04  Jakub Jelinek  <jakub@redhat.com>
-            Roland McGrath  <roland@redhat.com>
+	    Roland McGrath  <roland@redhat.com>
 
 	* sysdeps/unix/sysv/linux/i386/lowlevellock.h
 	(LLL_STUB_UNWIND_INFO_START, LLL_STUB_UNWIND_INFO_END,
@@ -2569,7 +2755,7 @@
 	* sysdeps/unix/sysv/linux/i386/i486/lowlevelrobustlock.S: Likewise.
 
 2006-03-03  Jakub Jelinek  <jakub@redhat.com>
-            Roland McGrath  <roland@redhat.com>
+	    Roland McGrath  <roland@redhat.com>
 
 	* sysdeps/unix/sysv/linux/x86_64/lowlevellock.h
 	(LLL_STUB_UNWIND_INFO_START, LLL_STUB_UNWIND_INFO_END,
@@ -3142,7 +3328,7 @@
 	* sysdeps/pthread/pthread.h: Adjust mutex initializers.
 
 	* sysdeps/unix/sysv/linux/i386/not-cancel.h: Define openat_not_cancel,
-        openat_not_cancel_3, openat64_not_cancel, and openat64_not_cancel_3.
+	openat_not_cancel_3, openat64_not_cancel, and openat64_not_cancel_3.
 
 2006-02-08  Jakub Jelinek  <jakub@redhat.com>
 
@@ -3564,7 +3750,7 @@
 	* Makefile ($(test-modules)): Remove static pattern rule.
 
 2005-10-14  Jakub Jelinek  <jakub@redhat.com>
-            Ulrich Drepper  <drepper@redhat.com>
+	    Ulrich Drepper  <drepper@redhat.com>
 
 	* sysdeps/unix/sysv/linux/x86_64/pthread_once.S: Fix stack
 	alignment in callback function.
@@ -3582,7 +3768,7 @@
 	atomic_compare_and_exchange_bool_acq.
 
 2005-10-01  Ulrich Drepper  <drepper@redhat.com>
-            Jakub Jelinek  <jakub@redhat.com>
+	    Jakub Jelinek  <jakub@redhat.com>
 
 	* descr.h: Define SETXID_BIT and SETXID_BITMASK.  Adjust
 	CANCEL_RESTMASK.

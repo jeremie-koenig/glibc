@@ -23,7 +23,7 @@
 #ifdef HAVE_SSE4_SUPPORT
 
 #include <sysdep.h>
-#include <ifunc-defines.h>
+#include <init-arch.h>
 
 #ifdef USE_AS_STRPBRK
 #define STRCSPN_SSE42	__strpbrk_sse42
@@ -42,6 +42,7 @@
    define multiple versions for strpbrk in static library since we
    need strpbrk before the initialization happened.  */
 #if (defined SHARED || !defined USE_AS_STRPBRK) && !defined NOT_IN_libc
+# ifdef SHARED
 	.section	.gnu.linkonce.t.__i686.get_pc_thunk.bx,"ax",@progbits
 	.globl	__i686.get_pc_thunk.bx
 	.hidden	__i686.get_pc_thunk.bx
@@ -63,7 +64,7 @@ ENTRY(STRCSPN)
 	jne	1f
 	call	__init_cpu_features
 1:	leal	STRCSPN_IA32@GOTOFF(%ebx), %eax
-	testl	$(1<<20), CPUID_OFFSET+COMMON_CPUID_INDEX_1*CPUID_SIZE+CPUID_ECX_OFFSET+__cpu_features@GOTOFF(%ebx)
+	testl	$bit_SSE4_2, CPUID_OFFSET+index_SSE4_2+__cpu_features@GOTOFF(%ebx)
 	jz	2f
 	leal	STRCSPN_SSE42@GOTOFF(%ebx), %eax
 2:	popl	%ebx
@@ -71,6 +72,20 @@ ENTRY(STRCSPN)
 	cfi_restore (ebx)
 	ret
 END(STRCSPN)
+# else
+	.text
+ENTRY(STRCSPN)
+	.type	STRCSPN, @gnu_indirect_function
+	cmpl	$0, KIND_OFFSET+__cpu_features
+	jne	1f
+	call	__init_cpu_features
+1:	leal	STRCSPN_IA32, %eax
+	testl	$bit_SSE4_2, CPUID_OFFSET+index_SSE4_2+__cpu_features
+	jz	2f
+	leal	STRCSPN_SSE42, %eax
+2:	ret
+END(STRCSPN)
+# endif
 
 # undef ENTRY
 # define ENTRY(name) \
