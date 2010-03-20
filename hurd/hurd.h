@@ -48,6 +48,9 @@
 #define _HURD_H_EXTERN_INLINE __extern_inline
 #endif
 
+int __hurd_fail (error_t err);
+
+#ifdef __USE_EXTERN_INLINES
 _HURD_H_EXTERN_INLINE int
 __hurd_fail (error_t err)
 {
@@ -77,6 +80,7 @@ __hurd_fail (error_t err)
   errno = err;
   return -1;
 }
+#endif
 
 /* Basic ports and info, initialized by startup.  */
 

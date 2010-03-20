@@ -31,6 +31,9 @@
 # endif
 #endif
 
+void * __thread_stack_pointer (void);
+
+#ifdef __USE_EXTERN_INLINES
 _EXTERN_INLINE void *
 __thread_stack_pointer (void)
 {
@@ -38,5 +41,6 @@ __thread_stack_pointer (void)
   __asm__ ("mr %0, 1" : "=r" (__sp__));
   return __sp__;
 }
+#endif
 
 #endif	/* machine-sp.h */
