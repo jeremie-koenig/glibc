@@ -1,4 +1,4 @@
-/* Copyright (C) 2002, 2003, 2004, 2006, 2007 Free Software Foundation, Inc.
+/* Copyright (C) 2002,2003,2004,2006,2007,2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@redhat.com>, 2002.
 
@@ -35,16 +35,17 @@ __pthread_cond_broadcast:
 	cfi_startproc
 	pushl	%ebx
 	cfi_adjust_cfa_offset(4)
+	cfi_rel_offset(%ebx, 0)
 	pushl	%esi
 	cfi_adjust_cfa_offset(4)
+	cfi_rel_offset(%esi, 0)
 	pushl	%edi
 	cfi_adjust_cfa_offset(4)
+	cfi_rel_offset(%edi, 0)
 	pushl	%ebp
 	cfi_adjust_cfa_offset(4)
-	cfi_offset(%ebx, -8)
-	cfi_offset(%esi, -12)
-	cfi_offset(%edi, -16)
-	cfi_offset(%ebp, -20)
+	cfi_rel_offset(%ebp, 0)
+	cfi_remember_state
 
 	movl	20(%esp), %ebx
 
@@ -90,11 +91,16 @@ __pthread_cond_broadcast:
 8:	cmpl	$-1, %edi
 	je	9f
 
-	/* XXX: The kernel so far doesn't support requeue to PI futex.  */
-	/* XXX: The kernel only supports FUTEX_CMP_REQUEUE to the same
-	   type of futex (private resp. shared).  */
-	testl	$(PI_BIT | PS_BIT), MUTEX_KIND(%edi)
+	/* Do not use requeue for pshared condvars.  */
+	testl	$PS_BIT, MUTEX_KIND(%edi)
 	jne	9f
+
+	/* Requeue to a non-robust PI mutex if the PI bit is set and
+	   the robust bit is not set.  */
+	movl	MUTEX_KIND(%edi), %eax
+	andl	$(ROBUST_BIT|PI_BIT), %eax
+	cmpl	$PI_BIT, %eax
+	je	81f
 
 	/* Wake up all threads.  */
 #ifdef __ASSUME_PRIVATE_FUTEX
@@ -120,32 +126,6 @@ __pthread_cond_broadcast:
 	cmpl	$0xfffff001, %eax
 	jae	9f
 
-10:	xorl	%eax, %eax
-	popl	%ebp
-	cfi_adjust_cfa_offset(-4)
-	cfi_restore(%ebp)
-	popl	%edi
-	cfi_adjust_cfa_offset(-4)
-	cfi_restore(%edi)
-	popl	%esi
-	cfi_adjust_cfa_offset(-4)
-	cfi_restore(%esi)
-	popl	%ebx
-	cfi_adjust_cfa_offset(-4)
-	cfi_restore(%ebx)
-	ret
-
-	cfi_adjust_cfa_offset(16)
-	cfi_offset(%ebx, -8)
-	cfi_offset(%esi, -12)
-	cfi_offset(%edi, -16)
-	cfi_offset(%ebp, -20)
-	.align	16
-	/* Unlock.  */
-4:	LOCK
-	subl	$1, cond_lock-cond_futex(%ebx)
-	jne	5f
-
 6:	xorl	%eax, %eax
 	popl	%ebp
 	cfi_adjust_cfa_offset(-4)
@@ -161,11 +141,25 @@ __pthread_cond_broadcast:
 	cfi_restore(%ebx)
 	ret
 
-	cfi_adjust_cfa_offset(16)
-	cfi_offset(%ebx, -8)
-	cfi_offset(%esi, -12)
-	cfi_offset(%edi, -16)
-	cfi_offset(%ebp, -20)
+	cfi_restore_state
+
+81:	movl	$(FUTEX_CMP_REQUEUE_PI|FUTEX_PRIVATE_FLAG), %ecx
+	movl	$SYS_futex, %eax
+	movl	$0x7fffffff, %esi
+	movl	$1, %edx
+	/* Get the address of the futex involved.  */
+# if MUTEX_FUTEX != 0
+	addl	$MUTEX_FUTEX, %edi
+# endif
+	int	$0x80
+
+	/* For any kind of error, which mainly is EAGAIN, we try again
+	with WAKE.  The general test also covers running on old
+	kernels.  */
+	cmpl	$0xfffff001, %eax
+	jb	6b
+	jmp	9f
+
 	/* Initial locking failed.  */
 1:
 #if cond_lock == 0
@@ -186,7 +180,13 @@ __pthread_cond_broadcast:
 	call	__lll_lock_wait
 	jmp	2b
 
-	/* Unlock in loop requires waekup.  */
+	.align	16
+	/* Unlock.  */
+4:	LOCK
+	subl	$1, cond_lock-cond_futex(%ebx)
+	je	6b
+
+	/* Unlock in loop requires wakeup.  */
 5:	leal	cond_lock-cond_futex(%ebx), %eax
 #if (LLL_SHARED-LLL_PRIVATE) > 255
 	xorl	%ecx, %ecx
@@ -201,7 +201,7 @@ __pthread_cond_broadcast:
 	call	__lll_unlock_wake
 	jmp	6b
 
-	/* Unlock in loop requires waekup.  */
+	/* Unlock in loop requires wakeup.  */
 7:	leal	cond_lock-cond_futex(%ebx), %eax
 #if (LLL_SHARED-LLL_PRIVATE) > 255
 	xorl	%ecx, %ecx
@@ -232,7 +232,7 @@ __pthread_cond_broadcast:
 	addl	$FUTEX_WAKE, %ecx
 	movl	$SYS_futex, %eax
 	ENTER_KERNEL
-	jmp	10b
+	jmp	6b
 	cfi_endproc
 	.size	__pthread_cond_broadcast, .-__pthread_cond_broadcast
 versioned_symbol (libpthread, __pthread_cond_broadcast, pthread_cond_broadcast,

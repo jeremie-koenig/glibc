@@ -1,5 +1,5 @@
 /* System-specific socket constants and types.  Linux version.
-   Copyright (C) 1991, 1992, 1994-2001, 2004, 2006, 2007, 2008
+   Copyright (C) 1991, 1992, 1994-2001, 2004, 2006, 2007, 2008, 2009
    Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -95,15 +95,21 @@ enum __socket_type
 #define	PF_ASH		18	/* Ash.  */
 #define	PF_ECONET	19	/* Acorn Econet.  */
 #define	PF_ATMSVC	20	/* ATM SVCs.  */
+#define PF_RDS		21	/* RDS sockets.  */
 #define	PF_SNA		22	/* Linux SNA Project */
 #define	PF_IRDA		23	/* IRDA sockets.  */
 #define	PF_PPPOX	24	/* PPPoX sockets.  */
 #define	PF_WANPIPE	25	/* Wanpipe API sockets.  */
+#define PF_LLC		26	/* Linux LLC.  */
+#define PF_CAN		29	/* Controller Area Network.  */
+#define PF_TIPC		30	/* TIPC sockets.  */
 #define	PF_BLUETOOTH	31	/* Bluetooth sockets.  */
 #define	PF_IUCV		32	/* IUCV sockets.  */
 #define PF_RXRPC	33	/* RxRPC sockets.  */
 #define PF_ISDN		34	/* mISDN sockets.  */
-#define	PF_MAX		35	/* For now..  */
+#define PF_PHONET	35	/* Phonet sockets.  */
+#define PF_IEEE802154	36	/* IEEE 802.15.4 sockets.  */
+#define	PF_MAX		37	/* For now..  */
 
 /* Address families.  */
 #define	AF_UNSPEC	PF_UNSPEC
@@ -130,14 +136,20 @@ enum __socket_type
 #define	AF_ASH		PF_ASH
 #define	AF_ECONET	PF_ECONET
 #define	AF_ATMSVC	PF_ATMSVC
+#define AF_RDS		PF_RDS
 #define	AF_SNA		PF_SNA
 #define	AF_IRDA		PF_IRDA
 #define	AF_PPPOX	PF_PPPOX
 #define	AF_WANPIPE	PF_WANPIPE
+#define AF_LLC		PF_LLC
+#define AF_CAN		PF_CAN
+#define AF_TIPC		PF_TIPC
 #define	AF_BLUETOOTH	PF_BLUETOOTH
 #define	AF_IUCV		PF_IUCV
 #define AF_RXRPC	PF_RXRPC
 #define AF_ISDN		PF_ISDN
+#define AF_PHONET	PF_PHONET
+#define AF_IEEE802154	PF_IEEE802154
 #define	AF_MAX		PF_MAX
 
 /* Socket level values.  Others are defined in the appropriate headers.
@@ -222,8 +234,8 @@ enum
 #define	MSG_MORE	MSG_MORE
 
     MSG_CMSG_CLOEXEC	= 0x40000000	/* Set close_on_exit for file
-                                           descriptor received through
-                                           SCM_RIGHTS.  */
+					   descriptor received through
+					   SCM_RIGHTS.  */
 #define MSG_CMSG_CLOEXEC MSG_CMSG_CLOEXEC
   };
 
@@ -246,6 +258,15 @@ struct msghdr
 
     int msg_flags;		/* Flags on received message.  */
   };
+
+#ifdef __USE_GNU
+/* For `recvmmsg'.  */
+struct mmsghdr
+  {
+    struct msghdr msg_hdr;	/* Actual message header.  */
+    unsigned int msg_len;	/* Number of received bytes for the entry.  */
+  };
+#endif
 
 /* Structure used for storage of ancillary data object information.  */
 struct cmsghdr
@@ -309,7 +330,7 @@ enum
   {
     SCM_RIGHTS = 0x01		/* Transfer file descriptors.  */
 #define SCM_RIGHTS SCM_RIGHTS
-#ifdef __USE_BSD
+#ifdef __USE_GNU
     , SCM_CREDENTIALS = 0x02	/* Credentials passing.  */
 # define SCM_CREDENTIALS SCM_CREDENTIALS
 #endif
@@ -390,5 +411,19 @@ struct linger
     int l_onoff;		/* Nonzero to linger on close.  */
     int l_linger;		/* Time to linger.  */
   };
+
+
+__BEGIN_DECLS
+
+/* Receive a message as described by MESSAGE from socket FD.
+   Returns the number of bytes read or -1 for errors.
+
+   This function is a cancellation point and therefore not marked with
+   __THROW.  */
+extern int recvmmsg (int __fd, struct mmsghdr *__vmessages,
+		     unsigned int __vlen, int __flags,
+		     __const struct timespec *__tmo);
+
+__END_DECLS
 
 #endif	/* bits/socket.h */
