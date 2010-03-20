@@ -1,4 +1,4 @@
-/* Copyright (C) 1998, 2000, 2001, 2002 Free Software Foundation, Inc.
+/* Copyright (C) 1998, 2000, 2001, 2002, 2009 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
    Contributed by Zack Weinberg <zack@rabi.phys.columbia.edu>, 1998.
 
@@ -19,6 +19,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <grp.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -37,7 +38,7 @@
    this buffer, a sufficiently long buffer is allocated using malloc,
    and returned in PTS.  0 is returned upon success, -1 otherwise.  */
 static int
-pts_name (int fd, char **pts, size_t buf_len)
+pts_name (int fd, char **pts, size_t buf_len, struct stat64 *stp)
 {
   int rv;
   char *buf = *pts;
@@ -48,7 +49,7 @@ pts_name (int fd, char **pts, size_t buf_len)
 
       if (buf_len)
 	{
-	  rv = __ptsname_r (fd, buf, buf_len);
+	  rv = __ptsname_internal (fd, buf, buf_len, stp);
 	  if (rv != 0)
 	    {
 	      if (rv == ENOTTY)
@@ -107,36 +108,53 @@ grantpt (int fd)
 #endif
   char *buf = _buf;
   struct stat64 st;
-  char *grtmpbuf;
-  struct group grbuf;
-  size_t grbuflen = __sysconf (_SC_GETGR_R_SIZE_MAX);
-  struct group *p;
-  uid_t uid;
-  gid_t gid;
-  pid_t pid;
 
-  if (pts_name (fd, &buf, sizeof (_buf)))
-    return -1;
+  if (__builtin_expect (pts_name (fd, &buf, sizeof (_buf), &st), 0))
+    {
+      int save_errno = errno;
 
-  if (__xstat64 (_STAT_VER, buf, &st) < 0)
-    goto cleanup;
+      /* Check, if the file descriptor is valid.  pts_name returns the
+	 wrong errno number, so we cannot use that.  */
+      if (__libc_fcntl (fd, F_GETFD) == -1 && errno == EBADF)
+	return -1;
+
+       /* If the filedescriptor is no TTY, grantpt has to set errno
+	  to EINVAL.  */
+       if (save_errno == ENOTTY)
+	 __set_errno (EINVAL);
+       else
+	 __set_errno (save_errno);
+
+       return -1;
+    }
 
   /* Make sure that we own the device.  */
-  uid = __getuid ();
+  uid_t uid = __getuid ();
   if (st.st_uid != uid)
     {
       if (__chown (buf, uid, st.st_gid) < 0)
 	goto helper;
     }
 
-  /* Get the group ID of the special `tty' group.  */
-  if (grbuflen == (size_t) -1L)
-    /* `sysconf' does not support _SC_GETGR_R_SIZE_MAX.
-       Try a moderate value.  */
-    grbuflen = 1024;
-  grtmpbuf = (char *) __alloca (grbuflen);
-  __getgrnam_r (TTY_GROUP, &grbuf, grtmpbuf, grbuflen, &p);
-  gid = p ? p->gr_gid : __getgid ();
+  static int tty_gid = -1;
+  if (__builtin_expect (tty_gid == -1, 0))
+    {
+      char *grtmpbuf;
+      struct group grbuf;
+      size_t grbuflen = __sysconf (_SC_GETGR_R_SIZE_MAX);
+      struct group *p;
+
+      /* Get the group ID of the special `tty' group.  */
+      if (grbuflen == (size_t) -1L)
+	/* `sysconf' does not support _SC_GETGR_R_SIZE_MAX.
+	   Try a moderate value.  */
+	grbuflen = 1024;
+      grtmpbuf = (char *) __alloca (grbuflen);
+      __getgrnam_r (TTY_GROUP, &grbuf, grtmpbuf, grbuflen, &p);
+      if (p != NULL)
+	tty_gid = p->gr_gid;
+    }
+  gid_t gid = tty_gid == -1 ? __getgid () : tty_gid;
 
   /* Make sure the group of the device is that special group.  */
   if (st.st_gid != gid)
@@ -157,9 +175,9 @@ grantpt (int fd)
   goto cleanup;
 
   /* We have to use the helper program.  */
- helper:
+ helper:;
 
-  pid = __fork ();
+  pid_t pid = __fork ();
   if (pid == -1)
     goto cleanup;
   else if (pid == 0)
@@ -173,6 +191,10 @@ grantpt (int fd)
 	if (__dup2 (fd, PTY_FILENO) < 0)
 	  _exit (FAIL_EBADF);
 
+#ifdef CLOSE_ALL_FDS
+      CLOSE_ALL_FDS ();
+#endif
+
       execle (_PATH_PT_CHOWN, basename (_PATH_PT_CHOWN), NULL, NULL);
       _exit (FAIL_EXEC);
     }
@@ -185,7 +207,7 @@ grantpt (int fd)
       if (!WIFEXITED (w))
 	__set_errno (ENOEXEC);
       else
-	switch (WEXITSTATUS(w))
+	switch (WEXITSTATUS (w))
 	  {
 	  case 0:
 	    retval = 0;
@@ -201,6 +223,9 @@ grantpt (int fd)
 	    break;
 	  case FAIL_EXEC:
 	    __set_errno (ENOEXEC);
+	    break;
+	  case FAIL_ENOMEM:
+	    __set_errno (ENOMEM);
 	    break;
 
 	  default:

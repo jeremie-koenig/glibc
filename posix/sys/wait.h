@@ -1,5 +1,5 @@
-/* Copyright (C) 1991-1994,1996-2001,2003,2004,2005,2007
-	Free Software Foundation, Inc.
+/* Copyright (C) 1991-1994,1996-2001,2003,2004,2005,2007,2009,2010
+   Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -32,7 +32,7 @@ __BEGIN_DECLS
 #include <sys/resource.h>
 
 /* These macros could also be defined in <stdlib.h>.  */
-#if !defined _STDLIB_H || !defined __USE_XOPEN
+#if !defined _STDLIB_H || (!defined __USE_XOPEN && !defined __USE_XOPEN2K8)
 /* This will define the `W*' macros for the flag
    bits to `waitpid', `wait3', and `wait4'.  */
 # include <bits/waitflags.h>
@@ -45,13 +45,13 @@ __BEGIN_DECLS
 #  if defined __GNUC__ && !defined __cplusplus
 #   define __WAIT_INT(status) \
   (__extension__ (((union { __typeof(status) __in; int __i; }) \
-                   { .__in = (status) }).__i))
+		   { .__in = (status) }).__i))
 #  else
 #   define __WAIT_INT(status)	(*(__const int *) &(status))
 #  endif
 
 /* This is the type of the argument to `wait'.  The funky union
-   causes redeclarations with ether `int *' or `union wait *' to be
+   causes redeclarations with either `int *' or `union wait *' to be
    allowed without complaint.  __WAIT_STATUS_DEFN is the type used in
    the actual function definitions.  */
 
@@ -79,26 +79,26 @@ typedef union
 /* This will define all the `__W*' macros.  */
 # include <bits/waitstatus.h>
 
-# define WEXITSTATUS(status)	__WEXITSTATUS(__WAIT_INT(status))
-# define WTERMSIG(status)	__WTERMSIG(__WAIT_INT(status))
-# define WSTOPSIG(status)	__WSTOPSIG(__WAIT_INT(status))
-# define WIFEXITED(status)	__WIFEXITED(__WAIT_INT(status))
-# define WIFSIGNALED(status)	__WIFSIGNALED(__WAIT_INT(status))
-# define WIFSTOPPED(status)	__WIFSTOPPED(__WAIT_INT(status))
+# define WEXITSTATUS(status)	__WEXITSTATUS (__WAIT_INT (status))
+# define WTERMSIG(status)	__WTERMSIG (__WAIT_INT (status))
+# define WSTOPSIG(status)	__WSTOPSIG (__WAIT_INT (status))
+# define WIFEXITED(status)	__WIFEXITED (__WAIT_INT (status))
+# define WIFSIGNALED(status)	__WIFSIGNALED (__WAIT_INT (status))
+# define WIFSTOPPED(status)	__WIFSTOPPED (__WAIT_INT (status))
 # ifdef __WIFCONTINUED
-#  define WIFCONTINUED(status)	__WIFCONTINUED(__WAIT_INT(status))
+#  define WIFCONTINUED(status)	__WIFCONTINUED (__WAIT_INT (status))
 # endif
 #endif	/* <stdlib.h> not included.  */
 
 #ifdef	__USE_BSD
 # define WCOREFLAG		__WCOREFLAG
-# define WCOREDUMP(status)	__WCOREDUMP(__WAIT_INT(status))
-# define W_EXITCODE(ret, sig)	__W_EXITCODE(ret, sig)
-# define W_STOPCODE(sig)	__W_STOPCODE(sig)
+# define WCOREDUMP(status)	__WCOREDUMP (__WAIT_INT (status))
+# define W_EXITCODE(ret, sig)	__W_EXITCODE (ret, sig)
+# define W_STOPCODE(sig)	__W_STOPCODE (sig)
 #endif
 
 /* The following values are used by the `waitid' function.  */
-#if defined __USE_SVID || defined __USE_XOPEN
+#if defined __USE_SVID || defined __USE_XOPEN || defined __USE_XOPEN2K8
 typedef enum
 {
   P_ALL,		/* Wait for any child.  */
@@ -138,7 +138,7 @@ extern __pid_t wait (__WAIT_STATUS __stat_loc);
    __THROW.  */
 extern __pid_t waitpid (__pid_t __pid, int *__stat_loc, int __options);
 
-#if defined __USE_SVID || defined __USE_XOPEN
+#if defined __USE_SVID || defined __USE_XOPEN || defined __USE_XOPEN2K8
 # define __need_siginfo_t
 # include <bits/siginfo.h>
 /* Wait for a childing matching IDTYPE and ID to change the status and
