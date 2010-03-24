@@ -1,0 +1,7 @@
+From: Thomas Schwinge <thomas@schwinge.name>
+Subject: [PATCH] t/ld.so_auxv
+
+Cf. 3a56ea26730755076cb5bc1d07727c7a4fcb8fd7
+
+We probably won't get by with passing NULL as auxv to dl_main, because it will
+unconditionally be dereferenced in elf/rtld.c.
