@@ -26,3 +26,4 @@ t/____longjmp_chk
 t/unwind-resume.c
 t/extern_inline
 t/unwind-resume.c
+t/ld.so_auxv
