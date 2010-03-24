@@ -1,0 +1,13 @@
+From: Thomas Schwinge <thomas@schwinge.name>
+Subject: [PATCH] t/grantpt
+
+    /media/Stalin/tmp/glibc.hurd.gnu-2/libc_pic.os: In function `pts_name':
+    /media/data/home/thomas/tmp/source/glibc/git/glibc.hurd/login/../sysdeps/unix/grantpt.c:52: undefined reference to `__ptsname_internal'
+    collect2: ld returned 1 exit status
+    make[1]: *** [/media/Stalin/tmp/glibc.hurd.gnu-2/libc.so] Error 1
+
+Cf. aa9890239a2aef81e64f3f22a31c7e01b6501f69
+
+Need any of the checks (stat, etc.) that Linux' __ptsname_internal does?
+
+Implement close_all_fds as in 139ee080b6b428240bf49f3e6361f3ac729f891a?
