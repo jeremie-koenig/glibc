@@ -1,7 +1,10 @@
 From: Thomas Schwinge <thomas@schwinge.name>
-Subject: [PATCH] t/ld.so_auxv
+Subject: [UNFINISHED] [PATCH] t/ld.so_auxv
 
 Cf. 3a56ea26730755076cb5bc1d07727c7a4fcb8fd7
 
-We probably won't get by with passing NULL as auxv to dl_main, because it will
+We don't get by with passing NULL as auxv to dl_main, because it will
 unconditionally be dereferenced in elf/rtld.c.
+
+Either conditionalize all use of auxv on HAVE_AUX_VECTOR, or make all code cope
+with auxv == NULL.

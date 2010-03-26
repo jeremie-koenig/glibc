@@ -182,7 +182,8 @@ extern struct rtld_global_ro _rtld_local_ro
 
 
 static void dl_main (const ElfW(Phdr) *phdr, ElfW(Word) phnum,
-		     ElfW(Addr) *user_entry, ElfW(auxv_t) *auxv);
+		     ElfW(Addr) *user_entry
+		     DL_MAIN_AUXVEC_DECL);
 
 /* These two variables cannot be moved into .data.rel.ro.  */
 static struct libname_list _dl_rtld_libname;
@@ -882,8 +883,8 @@ static int version_info attribute_relro;
 static void
 dl_main (const ElfW(Phdr) *phdr,
 	 ElfW(Word) phnum,
-	 ElfW(Addr) *user_entry,
-	 ElfW(auxv_t) *auxv)
+	 ElfW(Addr) *user_entry
+	 DL_MAIN_AUXVEC_DECL DL_MAIN_AUXVEC_PARAM)
 {
   const ElfW(Phdr) *ph;
   enum mode mode;
@@ -928,7 +929,9 @@ dl_main (const ElfW(Phdr) *phdr,
 
   if (*user_entry == (ElfW(Addr)) ENTRY_POINT)
     {
+#ifdef HAVE_AUX_VECTOR
       ElfW(auxv_t) *av;
+#endif
 
       /* Ho ho.  We are not the program interpreter!  We are the program
 	 itself!  This means someone ran ld.so as a command.  Well, that
@@ -1086,6 +1089,7 @@ of this helper program; chances are you did not intend to run this program.\n\
       main_map->l_name = (char *) "";
       *user_entry = main_map->l_entry;
 
+#ifdef HAVE_AUX_VECTOR
       /* Adjust the on-stack auxiliary vector so that it looks like the
 	 binary was executed directly.  */
       for (av = auxv; av->a_type != AT_NULL; av++)
@@ -1101,6 +1105,7 @@ of this helper program; chances are you did not intend to run this program.\n\
 	    av->a_un.a_val = *user_entry;
 	    break;
 	  }
+#endif
     }
   else
     {
@@ -2583,6 +2588,7 @@ process_envvars (enum mode *modep)
 	    GLRO(dl_bind_not) = envline[9] != '\0';
 	  break;
 
+#ifdef HAVE_AUX_VECTOR
 	case 9:
 	  /* Test whether we want to see the content of the auxiliary
 	     array passed up from the kernel.  */
@@ -2590,6 +2596,7 @@ process_envvars (enum mode *modep)
 	      && memcmp (envline, "SHOW_AUXV", 9) == 0)
 	    _dl_show_auxv ();
 	  break;
+#endif
 
 	case 10:
 	  /* Mask for the important hardware capabilities.  */
