@@ -1,0 +1,15 @@
+From: Thomas Schwinge <thomas@schwinge.name>
+Subject: [PATCH] posix/regex_internal.c/MAX_undefined
+
+    /media/Stalin/tmp/glibc.hurd.build.gnu-2/libc_pic.os: In function `re_string_realloc_buffers':
+    /media/data/home/thomas/tmp/source/glibc/git/glibc.hurd/posix/regex_internal.c:139: undefined reference to `MAX'
+    /media/Stalin/tmp/glibc.hurd.build.gnu-2/libc_pic.os: In function `re_dfa_add_node':
+    /media/data/home/thomas/tmp/source/glibc/git/glibc.hurd/posix/regex_internal.c:1417: undefined reference to `MAX'
+    /media/data/home/thomas/tmp/source/glibc/git/glibc.hurd/posix/regex_internal.c:1417: undefined reference to `MAX'
+
+
+  Thomas Schwinge  <thomas@schwinge.name>
+
+	* posix/regex.c: Move #include "regex_internal.h"...
+	* posix/regex_internal.c: ... here.
+	Also #include <sys/param.h>.
