@@ -166,15 +166,19 @@ elf_machine_runtime_setup (struct link_map *l, int lazy, int profile)
 	     in .rela.plt.  */
 	  while (rela < relaend)
 	    {
-	      *(unsigned int *) rela->r_offset
-		= OPCODE_SETHI_G1 | (rela->r_offset - (Elf32_Addr) plt);
-	      *(unsigned int *) (rela->r_offset + 4)
+	      *(unsigned int *) (rela->r_offset + l->l_addr)
+		= OPCODE_SETHI_G1 | (rela->r_offset + l->l_addr
+				     - (Elf32_Addr) plt);
+	      *(unsigned int *) (rela->r_offset + l->l_addr + 4)
 		= OPCODE_BA | ((((Elf32_Addr) plt
-				 - rela->r_offset - 4) >> 2) & 0x3fffff);
+				 - rela->r_offset - l->l_addr - 4) >> 2)
+			       & 0x3fffff);
 	      if (do_flush)
 		{
-		  __asm __volatile ("flush %0" : : "r"(rela->r_offset));
-		  __asm __volatile ("flush %0+4" : : "r"(rela->r_offset));
+		  __asm __volatile ("flush %0" : : "r" (rela->r_offset
+							+ l->l_addr));
+		  __asm __volatile ("flush %0+4" : : "r" (rela->r_offset
+							  + l->l_addr));
 		}
 	      ++rela;
 	    }
@@ -559,7 +563,7 @@ elf_machine_lazy_rel (struct link_map *map,
     {
       Elf32_Addr value = map->l_addr + reloc->r_addend;
       value = ((Elf32_Addr (*) (void)) value) ();
-      sparc_fixup_plt (reloc, reloc_addr, value, 0, 1);
+      sparc_fixup_plt (reloc, reloc_addr, value, 1, 1);
     }
   else if (r_type == R_SPARC_NONE)
     ;
