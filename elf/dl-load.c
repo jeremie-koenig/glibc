@@ -1,5 +1,5 @@
 /* Map in a shared object's segments from the file.
-   Copyright (C) 1995-2005, 2006, 2007, 2009 Free Software Foundation, Inc.
+   Copyright (C) 1995-2005, 2006, 2007, 2009, 2010 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -313,7 +313,7 @@ static char *
 expand_dynamic_string_token (struct link_map *l, const char *s)
 {
   /* We make two runs over the string.  First we determine how large the
-     resulting string is and then we copy it over.  Since this is now
+     resulting string is and then we copy it over.  Since this is no
      frequently executed operation we are looking here not for performance
      but rather for code size.  */
   size_t cnt;
@@ -391,7 +391,7 @@ fillin_rpath (char *rpath, struct r_search_path_elem **result, const char *sep,
       size_t len = strlen (cp);
 
       /* `strsep' can pass an empty string.  This has to be
-         interpreted as `use the current directory'. */
+	 interpreted as `use the current directory'. */
       if (len == 0)
 	{
 	  static const char curwd[] = "./";
@@ -1519,7 +1519,7 @@ cannot enable executable stack as shared object requires");
 /* Print search path.  */
 static void
 print_search_path (struct r_search_path_elem **list,
-                   const char *what, const char *name)
+		   const char *what, const char *name)
 {
   char buf[max_dirnamelen + max_capstrlen];
   int first = 1;
@@ -1569,11 +1569,11 @@ open_verify (const char *name, struct filebuf *fbp, struct link_map *loader,
 #ifndef VALID_ELF_HEADER
 # define VALID_ELF_HEADER(hdr,exp,size)	(memcmp (hdr, exp, size) == 0)
 # define VALID_ELF_OSABI(osabi)		(osabi == ELFOSABI_SYSV)
-# define VALID_ELF_ABIVERSION(ver)	(ver == 0)
+# define VALID_ELF_ABIVERSION(osabi,ver) (ver == 0)
 #elif defined MORE_ELF_HEADER_DATA
   MORE_ELF_HEADER_DATA;
 #endif
-  static const unsigned char expected[EI_PAD] =
+  static const unsigned char expected[EI_NIDENT] =
   {
     [EI_MAG0] = ELFMAG0,
     [EI_MAG1] = ELFMAG1,
@@ -1655,7 +1655,13 @@ open_verify (const char *name, struct filebuf *fbp, struct link_map *loader,
 
       /* See whether the ELF header is what we expect.  */
       if (__builtin_expect (! VALID_ELF_HEADER (ehdr->e_ident, expected,
-						EI_PAD), 0))
+						EI_ABIVERSION)
+			    || !VALID_ELF_ABIVERSION (ehdr->e_ident[EI_OSABI],
+						      ehdr->e_ident[EI_ABIVERSION])
+			    || memcmp (&ehdr->e_ident[EI_PAD],
+				       &expected[EI_PAD],
+				       EI_NIDENT - EI_PAD) != 0,
+			    0))
 	{
 	  /* Something is wrong.  */
 	  const Elf32_Word *magp = (const void *) ehdr->e_ident;
@@ -1695,8 +1701,12 @@ open_verify (const char *name, struct filebuf *fbp, struct link_map *loader,
 	     allowed here.  */
 	  else if (!VALID_ELF_OSABI (ehdr->e_ident[EI_OSABI]))
 	    errstring = N_("ELF file OS ABI invalid");
-	  else if (!VALID_ELF_ABIVERSION (ehdr->e_ident[EI_ABIVERSION]))
+	  else if (!VALID_ELF_ABIVERSION (ehdr->e_ident[EI_OSABI],
+					  ehdr->e_ident[EI_ABIVERSION]))
 	    errstring = N_("ELF file ABI version invalid");
+	  else if (memcmp (&ehdr->e_ident[EI_PAD], &expected[EI_PAD],
+			   EI_NIDENT - EI_PAD) != 0)
+	    errstring = N_("nonzero padding in e_ident");
 	  else
 	    /* Otherwise we don't know what went wrong.  */
 	    errstring = N_("internal error");
@@ -2044,7 +2054,7 @@ _dl_map_object (struct link_map *loader, const char *name, int preloaded,
       fd = -1;
 
       /* When the object has the RUNPATH information we don't use any
-         RPATHs.  */
+	 RPATHs.  */
       if (loader == NULL || loader->l_info[DT_RUNPATH] == NULL)
 	{
 	  /* This is the executable's map (if there is one).  Make sure that
@@ -2067,7 +2077,7 @@ _dl_map_object (struct link_map *loader, const char *name, int preloaded,
 	      }
 
 	  /* If dynamically linked, try the DT_RPATH of the executable
-             itself.  NB: we do this for lookups in any namespace.  */
+	     itself.  NB: we do this for lookups in any namespace.  */
 	  if (fd == -1 && !did_main_map
 	      && main_map != NULL && main_map->l_type != lt_loaded
 	      && cache_rpath (main_map, &main_map->l_rpath_dirs, DT_RPATH,
@@ -2164,7 +2174,7 @@ _dl_map_object (struct link_map *loader, const char *name, int preloaded,
 
       /* Add another newline when we are tracing the library loading.  */
       if (__builtin_expect (GLRO(dl_debug_mask) & DL_DEBUG_LIBS, 0))
-        _dl_debug_printf ("\n");
+	_dl_debug_printf ("\n");
     }
   else
     {
