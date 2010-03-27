@@ -1,3 +1,431 @@
+2010-03-26  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/i386/fcntl.c: Define miss_F_GETOWN_EX
+	only if needed.
+	Patch mostly by Paul Pluzhnikov <ppluzhnikov@google.com>.
+
+2010-03-26  Richard Henderson  <rth@redhat.com>
+
+	* sysdeps/generic/ldsodefs.h (_dl_random): Mark attribute_relro;
+
+	* stdio-common/psiginfo.c (psiginfo): Fix printf format
+	warning for si_band.
+
+	* locale/setlocale.c (free_category): Finish renaming
+	struct locale_data to __locale_data.
+
+	* csu/gmon-start.c (ENTRY_POINT, etext): Declare as char[], not void.
+	* elf/dl-sysdep.c (_end): Likewise.
+	* sysdeps/unix/sysv/dl-sysdep.c (frob_brk): Likewise with locally
+	declared _end, and associated variables.
+
+2010-03-26  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/posix/getaddrinfo.c (gaih_inet): Don't assume success always
+	means aborting the loop over the NSS methods.
+
+2010-03-25  Andreas Schwab  <schwab@redhat.com>
+
+	* sysdeps/posix/getaddrinfo.c (gaih_inet): Reset no_data before
+	each action.
+
+2010-03-26  Ulrich Drepper  <drepper@redhat.com>
+
+	* malloc/malloc.c: Remove stale reference to website.
+
+2010-03-24  Ulrich Drepper  <drepper@redhat.com>
+
+	[BZ #11389]
+	* bits/time.h: Define CLOCK_MONOTONIC_RAW, CLOCK_REALTIME_COARSE, and
+	CLOCK_MONOTONIC_COARSE.
+	* sysdeps/unix/sysv/linux/clock_getres.c: Handle CLOCK_MONOTONIC_RAW,
+	CLOCK_REALTIME_COARSE, and CLOCK_MONOTONIC_COARSE.
+	* sysdeps/unix/sysv/linux/clock_gettime.c: Likewise.
+	* sysdeps/unix/sysv/linux/clock_settime.c: Likewise.
+
+2010-03-25  Andreas Schwab  <schwab@redhat.com>
+
+	* sysdeps/posix/cuserid.c: Fix typo.
+
+2010-03-16  Chris Demetriou  <cgd@google.com>
+
+	[BZ #11394]
+	* locale/programs/simple-hash.c: Include inttypes.h.
+	(hashval_t): Defined to be uint32_t.
+	* locale/programs/simple_hash.h: Include inttypes.h.
+	(compute_hashval): Change return type to uint32_t.
+
+2010-03-24  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/getlogin_r.c: New file.
+	* sysdeps/unix/sysv/linux/getlogin.c: New file.
+	* sysdeps/unix/getlogin_r.c: Allow compiling getlogin as static
+	function.
+	* sysdeps/unix/getlogin.c: Likewise.  Move name variable to toplevel.
+	* include/unistd.h: Declare __getlogin_r_loginuid.
+
+	[BZ #11397]
+	* sysdeps/posix/cuserid.c (cuserid): Make sure the returned string
+	is NUL terminated.
+	Patch by Jonathan Geisler <jgeisler@cse.taylor.edu>.
+
+	* sysdeps/unix/sysv/linux/mmap64.c: Allow variable shift values.
+
+2010-03-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* sysdeps/x86_64/multiarch/strpbrk-c.c: Define only if SHARED
+	is defined.
+
+2010-03-22  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* string/test-memcmp.c (check_result): New function.
+	(do_one_test): Use it.
+	(check1): New function.
+	(test_main): Use it.
+
+2010-03-24  Ulrich Drepper  <drepper@redhat.com>
+
+	* posix/tst-gnuglob.c: Add tests with empty patterns.  For this
+	rewrite the tests to add support for failing glob calls.
+	Some other minor cleanups.
+	* posix/bug-glob3.c: New file.
+	* posix/Makefile (tests): Add bug-glob3.
+
+2010-03-24  Ulrich Drepper  <drepper@redhat.com>
+	    Andreas Schwab  <andreas@redhat.com>
+
+	* posix/glob.c (glob): Clean up gl_pathc and gl_pathv earlier.
+	If pattern is "" bail out early
+
+2010-03-23  Jakub Jelinek  <jakub@redhat.com>
+
+	* elf/dl-lookup.c (do_lookup_x): If tab->entries is NULL,
+	but tab->size != 0, just unlock and goto success, without
+	allocating anything or entering anything into the hash table.
+	(_dl_debug_bindings): Temporarily set tab->entries to NULL
+	around do_lookup_x in undef_map->l_local_scope[0].  If
+	undef_map->l_symbolic_in_local_scope, lookup also in
+	symbolic_searchlist of following libraries in l_local_scope
+	that have DT_SYMBOLIC set.
+	* elf/dl-deps.c (_dl_map_object_deps): Compute
+	l_symbolic_in_local_scope.
+	* include/link.h (struct link_map): Add l_symbolic_in_local_scope
+	bitfield.
+
+2010-03-24  Ulrich Drepper  <drepper@redhat.com>
+
+	[BZ #11410]
+	* wctype/wctype.h: Use <wchar.h> to get the wint_t definition.
+
+	* wcsmbs/wchar.h: Correct preprocessor directive indentation.  Move
+	C++ prototype handling to a better place.
+
+2010-03-18  Ulrich Drepper  <drepper@redhat.com>
+
+	* elf/dl-load.c (open_verify): Extend expected to the full size of the
+	e_ident array.  When loading, check that the fields in e_ident we don't
+	know are zero to allow future extensions.
+
+2010-03-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* sysdeps/i386/i686/multiarch/memcmp-ssse3.S: Update %xmm3
+	when exit from loop.
+
+2010-03-16  Andreas Schwab  <schwab@redhat.com>
+
+	* resolv/res_send.c (__libc_res_nsend): Fix printing of server
+	address in debug statement.
+	(send_dg): Pass correct buffer pointer to DprintQ.
+
+2010-03-17  Ulrich Drepper  <drepper@redhat.com>
+
+	* libc-abis: Add a few more entries.
+
+2010-03-16  Ulrich Drepper  <drepper@redhat.com>
+
+	* elf/dl-load.c (VALID_ELF_ABIVERSION): Add additional osabi parameter.
+	Not used here.
+	(open_verify): Modify for extended VALID_ELF_ABIVERSION macro
+	interface.
+	* sysdeps/unix/sysv/linux/ldsodefs.h (VALID_ELF_ABIVERSION): Add
+	additional osabi parameter.  Only acceept nonzero ABI versions if osabi
+	is Linux.
+	Fix includes.
+	(expected2): Don't explicitly initialize EI_ABIVERSION byte.
+
+	* sysdeps/unix/sysv/linux/ldsodefs.h (VALID_ELF_ABIVERSION): Update
+	definition to follow generic code.
+
+2010-03-15  Ulrich Drepper  <drepper@redhat.com>
+
+	* posix/getconf.c: Update copyright year.
+	* nss/getent.c: Likewise.
+	* iconv/iconvconfig.c: Likewise.
+	* iconv/iconv_prog.c: Likewise.
+	* elf/ldconfig.c: Likewise.
+	* catgets/gencat.c: Likewise.
+	* csu/version.c: Likewise.
+	* elf/ldd.bash.in: Likewise.
+	* elf/sprof.c (print_version): Likewise.
+	* locale/programs/locale.c: Likewise.
+	* locale/programs/localedef.c: Likewise.
+	* nscd/nscd.c (print_version): Likewise.
+	* debug/xtrace.sh: Likewise.
+	* malloc/memusage.sh: Likewise.
+	* malloc/mtrace.pl: Likewise.
+	* debug/catchsegv.sh: Likewise.
+
+	* Makerules: Add rule for libc-abis.h.
+	* csu/version.c: Use LIBC_ABIS_STRING string if available.
+	* elf/dl-load.c (VALID_ELF_ABIVERSION): Check using LIBC_ABI_MAX.
+	(open_verify): Only check EI_ABIVERSION bytes using VALID_ELF_HEADER.
+	Add extra call to VALID_ELF_ABIVERSION.
+
+2010-03-12  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/sys/mount.h (UMOUNT_NOFOLLOW): Define.
+
+2010-03-12  Andreas Schwab  <schwab@redhat.com>
+
+	* elf/dl-dst.h: Include "trusted-dirs.h".
+	(DL_DST_REQUIRED): Take $LIB into account.
+
+2010-03-11  Roland McGrath  <roland@redhat.com>
+
+	* elf/elf.h (R_X86_64_GOT64, R_X86_64_GOTPCREL64): New macros.
+	(R_X86_64_GOTPC64, R_X86_64_GOTPLT64, R_X86_64_PLTOFF64): New macros.
+
+2010-03-10  Luis Machado  <luisgpm@br.ibm.com>
+
+	* sysdeps/powerpc/powerpc64/power7/memcpy.S: New file.
+	* sysdeps/powerpc/powerpc32/power7/memcpy.S: New file.
+
+2010-03-09  David S. Miller  <davem@davemloft.net>
+
+	* sysdeps/sparc/sparc64/dl-machine.h (elf_machine_rela): Handling
+	of R_SPARC_TLS_LE_* needs to use 32-bit loads and stores, not
+	64-bit ones.
+
+	* sysdeps/sparc/sparc32/memcpy.S: Fix build.
+
+	* sysdeps/sparc/sparc32/strlen.S: Optimize.
+	* sysdeps/sparc/sparc64/strlen.S: Likewise.
+	* sysdeps/sparc/sparc32/sparcv9/strlen.S (ASI_PNF, ASI_BLK_P,
+	XCC): Delete definitions, not needed.
+
+2010-03-07  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/internal_statvfs.c (__statvfs_getflags):
+	Little follow-up patch from last change.
+
+2010-03-06  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/internal_statvfs.c: Handle ext4 and logfs.
+	* sysdeps/unix/sysv/linux/linux_fsinfo.h: Add entry for logfs.
+
+2010-02-18  Yann Droneaud  <yann@droneaud.fr>
+
+	* resolv/res_send.c: Fixed DEBUG statements.
+	Moved tmpbuf declaration to block beginning and
+	updated pointer names used in multiple DprintQ() calls
+
+2010-02-18  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* config.make.in (config-asflags-i686): Define.
+	* configure.in: Substitute libc_cv_as_i686.
+	* sysdeps/i386/configure.in: Check if assembler supports -mtune=i686.
+	* sysdeps/i386/i686/Makefile (CFLAGS-.oX): Add -Wa,-mtune=i686
+	if assembler supports -mtune=i686.
+	(ASFLAGS-.oX): Likewise.
+
+2010-03-04  Ulrich Drepper  <drepper@redhat.com>
+
+	* elf/elf.h (R_X86_64_SIZE32): Define.
+	(R_X86_64_SIZE64): Define.
+
+2010-03-02  Richard Guenther  <rguenther@suse.de>
+
+	* sysdeps/x86_64/dl-machine.h (elf_machine_rela): R_X86_64_PC32
+	is sign-extending.
+
+2010-03-03  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/bits/in.h: Add a few more definitions from
+	the kernel headers.
+
+2010-03-04  David S. Miller  <davem@davemloft.net>
+
+	* sysdeps/sparc/sparc64/Implies: Add ieee754/dbl-64/wordsize-64 entry.
+
+	* sysdeps/sparc/sparc32/sparcv8/udiv_qrnnd.S: Delete.
+	* sysdeps/sparc/sparc32/udiv_qrnnd.S: Delete.
+
+2010-03-03  David S. Miller  <davem@davemloft.net>
+
+	* math/math_private.h (INSERT_WORDS64): Fix argument order.
+
+2010-03-03  Aurelien Jarno  <aurelien@aurel32.net>
+
+	* sysdeps/unix/sysv/linux/sparc/sparc64/msgrcv.c: New file.
+
+2010-03-03  David S. Miller  <davem@davemloft.net>
+
+	* sysdeps/sparc/sparc32/dl-machine.h (elf_machine_lazy_rel): Must
+	pass '1' for 't' argument to sparc_fixup_plt.
+	* sysdeps/sparc/sparc64/dl-machine.h (elf_machine_lazy_rel):
+	Likewise.
+	* sysdeps/sparc/sparc32/dl-plt.h (OPCODE_BA_PT): Define.
+	(sparc_fixup_plt): Document 't' argument.  Enable branch
+	optimization and use v9 branches when possible.  Explain why we
+	cannot unconditionally patch the branch into the first PLT
+	instruction.
+	* sysdeps/sparc/sparc64/dl-plt.h (sparc64_fixup_plt): Document 't'
+	argument.  Use v9 branches when possible.  Explain why we can in
+	fact unconditionally use a branch in the first PLT instruction
+	here.
+
+2010-02-28  Roland McGrath  <roland@redhat.com>
+
+	* elf/elf.h (NT_X86_XSTATE): New macro.
+
+2010-02-25  David S. Miller  <davem@davemloft.net>
+
+	* sysdeps/sparc/sparc64/Makefile: Add align-cpy rule.
+	* sysdeps/sparc/sparc64/align-cpy.S: New.
+	* sysdeps/sparc/sparc64/memcpy.S (__align_cpy_1, __align_cpy_2,
+	__align_cpy_4, __align_cpy_8, __align_cpy_16): Remove.
+	* sysdeps/sparc/sparc64/sparcv9b/memcpy.S (__align_cpy_1,
+	__align_cpy_2, __align_cpy_4, __align_cpy_8, __align_cpy_16):
+	Remove.
+	* sysdeps/sparc/sparc64/sparcv9v/memcpy.S (__align_cpy_1,
+	__align_cpy_2, __align_cpy_4, __align_cpy_8, __align_cpy_16):
+	Remove.
+	* sysdeps/sparc/sparc64/sparcv9v2/memcpy.S (__align_cpy_1,
+	__align_cpy_2, __align_cpy_4, __align_cpy_8, __align_cpy_16):
+	Remove.
+
+	* sysdeps/sparc/sparc32/bcopy.c: Delete.
+	* sysdeps/sparc/sparc32/memmove.c: Delete.
+	* sysdeps/sparc/sparc32/sparcv9/bcopy.c: Delete.
+	* sysdeps/sparc/sparc32/sparcv9/memmove.c: Delete.
+	* sysdeps/sparc/sparc64/bcopy.c: Delete.
+	* sysdeps/sparc/sparc64/memmove.c: Delete.
+	* sysdeps/sparc/sparc64/memcopy.h: New.
+	* sysdeps/sparc/sparc32/memcpy.S (bcopy, memmove): Remove.
+	* sysdeps/sparc/sparc64/memcpy.S (bcopy, memmove): Likewise.
+	* sysdeps/sparc/sparc64/sparcv9b/memcpy.S (bcopy, memmove): Likewise.
+	* sysdeps/sparc/sparc64/sparcv9v/memcpy.S (bcopy, memmove): Likewise.
+	* sysdeps/sparc/sparc64/sparcv9v2/memcpy.S (bcopy, memmove): Likewise.
+
+	* sysdeps/sparc/elf/rtld-global-offsets.sym: New file.
+	* sysdeps/sparc/Makefile (csu): Add rtld-global-offsets.sym to
+	gen-as-const-headers.
+	* sysdeps/sparc/sparc32/sparcv9/multiarch/Makefile: New file.
+	* sysdeps/sparc/sparc32/sparcv9/multiarch/memcpy.S: New file.
+	* sysdeps/sparc/sparc32/sparcv9/multiarch/memset.S: New file.
+	* sysdeps/sparc/sparc32/sparcv9/sparcv9b/memcpy.S: Move to...
+	* sysdeps/sparc/sparc32/sparcv9/multiarch/memcpy-ultra3.S: ...here.
+	* sysdeps/sparc/sparc32/sparcv9/sparcv9v/memcpy.S: Move to...
+	* sysdeps/sparc/sparc32/sparcv9/multiarch/memcpy-niagara1.S: ...here.
+	* sysdeps/sparc/sparc32/sparcv9/sparcv9v/memset.S: Move to...
+	* sysdeps/sparc/sparc32/sparcv9/multiarch/memset-niagara1.S: ...here.
+	* sysdeps/sparc/sparc32/sparcv9/sparcv9v2/memcpy.S: Move to...
+	* sysdeps/sparc/sparc32/sparcv9/multiarch/memcpy-niagara2.S: ...here.
+	* sysdeps/sparc/sparc32/sparcv9/sparcv9v2/memset.S: Removed.
+	* sysdeps/sparc/sparc64/multiarch/Makefile: New file.
+	* sysdeps/sparc/sparc64/sparcv9v/memcpy.S: Move to...
+	* sysdeps/sparc/sparc64/multiarch/memcpy-niagara1.S: ...here.
+	* sysdeps/sparc/sparc64/sparcv9v2/memcpy.S: Move to...
+	* sysdeps/sparc/sparc64/multiarch/memcpy-niagara2.S: ...here.
+	* sysdeps/sparc/sparc64/sparcv9b/memcpy.S: Move to...
+	* sysdeps/sparc/sparc64/multiarch/memcpy-ultra3.S: ...here.
+	* sysdeps/sparc/sparc64/sparcv9v/memset.S: Move to...
+	* sysdeps/sparc/sparc64/multiarch/memset-niagara1.S: ...here.
+	* sysdeps/sparc/sparc64/sparcv9v2/memset.S: Removed.
+	* sysdeps/sparc/sparc64/multiarch/memcpy.S: New file.
+	* sysdeps/sparc/sparc64/multiarch/memset.S: New file.
+
+2010-02-20  H.J. Lu  <hongjiu.lu@intel.com>
+
+	[BZ #11332]
+	* sysdeps/i386/i686/multiarch/strcmp-sse4.S: Use cfi_remember_state
+	and cfi_restore_state only if USE_AS_STRNCMP is defined.
+
+2010-02-24  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/x86_64/Implies: Add ieee754/dbl-64/wordsize-64 entry.
+
+2010-02-24  H.J. Lu  <hongjiu.lu@intel.com>
+
+	* sysdeps/i386/i686/multiarch/memcpy-ssse3-rep.S
+	(bk_write_less32bytes_2): Renamed to ...
+	(bk_write_less48bytes): This.
+	Use unsigned conditional jumps.
+	Correct unwind info.
+	Use add/sub instead of lea if possible.
+	(shl_0_gobble_cache_loop_tail): Removed.
+	(large_page): Properly adjust ECX.
+
+	* sysdeps/i386/i686/multiarch/memcpy-ssse3.S: Use unsigned
+	conditional jumps.
+	Correct unwind info.
+
+	* sysdeps/i386/i686/multiarch/memset-sse2-rep.S: Remove redundant
+	punpcklbw.
+	Use unsigned conditional jumps.
+	(128bytesormore_nt): Renamed to ...
+	(128bytesormore_endof_L1): This.
+	Use add instead of lea if possible.
+	Correct unwind info.
+	* sysdeps/i386/i686/multiarch/memset-sse2.S: Remove redundant
+	punpcklbw.
+	Use unsigned conditional jumps.
+	Use add instead of lea if possible.
+	Correct unwind info.
+
+2010-02-24  Ulrich Drepper  <drepper@redhat.com>
+
+	[BZ #11319]
+	* libio/iovdprintf.c (_IO_vdprintf): Explicitly flush stream before
+	undoing the stream because _IO_FINISH doesn't report failures.
+
+	[BZ #5553]
+	* malloc/malloc.c (public_vALLOc): Set ar_ptr when trying main_arena.
+	(public_pVALLOc): Likewise.
+	Patch by Petr Baudis.
+
+2010-02-22  Jim Meyering  <meyering@redhat.com>
+
+	* manual/math.texi (BSD Random): Fix a typo: s/are/is/
+
+	* manual/charset.texi: Adjust grammar.
+
+	* manual/errno.texi (Error Messages): Fix doubled-words and typos.
+	* manual/charset.texi (Selecting the Conversion): Likewise.
+	* manual/getopt.texi (Getopt Long Options): Likewise.
+	* manual/memory.texi (Resizing the Data Segment): Likewise.
+	* manual/message.texi (GUI program problems): Likewise.
+	* manual/resource.texi (CPU Affinity): Likewise.
+	* manual/stdio.texi (Streams and Threads): Likewise.
+	* manual/time.texi (High Accuracy Clock): Likewise.
+
+2009-02-20  David S. Miller  <davem@davemloft.net>
+
+	* sysdeps/sparc/sparc32/dl-machine.h (elf_machine_runtime_setup):
+	Adjust rela->r_offset by l->l_addr when rewriting PLT.
+
+	* sysdeps/sparc/sparc64/memchr.S: Use unsigned branch on greater to
+	test end of buffer.
+
+	* sysdeps/unix/sysv/linux/sparc/sparc32/makecontext.c
+	(__makecontext): Adjust arg counter properly when copying arg
+	stack slots.
+
+2009-02-20  Joseph Myers  <joseph@codesourcery.com>
+
+	* sysdeps/sparc/sparc64/dl-machine.h (elf_machine_runtime_setup):
+	Adjust rela->r_offset by l->l_addr when rewriting PLT.
+
 2010-02-19  Carl Fredrik Hammar  <hammy.lite@gmail.com>
 
 	* hurd/hurdioctl.c (tiocsctty): Call `do_tiocsctty' instead of
