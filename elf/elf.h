@@ -619,6 +619,7 @@ typedef struct
 #define NT_PPC_VSX	0x102		/* PowerPC VSX registers */
 #define NT_386_TLS	0x200		/* i386 TLS slots (struct user_desc) */
 #define NT_386_IOPERM	0x201		/* x86 io permission bitmap (1=deny) */
+#define NT_X86_XSTATE	0x202		/* x86 extended state using xsave */
 
 /* Legal values for the note segment descriptor types for object files.  */
 
@@ -2665,7 +2666,15 @@ typedef Elf32_Addr Elf32_Conflict;
 #define R_X86_64_GOTOFF64	25	/* 64 bit offset to GOT */
 #define R_X86_64_GOTPC32	26	/* 32 bit signed pc relative
 					   offset to GOT */
-/* 27 .. 33 */
+#define R_X86_64_GOT64		27	/* 64-bit GOT entry offset */
+#define R_X86_64_GOTPCREL64	28	/* 64-bit PC relative offset
+					   to GOT entry */
+#define R_X86_64_GOTPC64	29	/* 64-bit PC relative offset to GOT */
+#define R_X86_64_GOTPLT64	30 	/* like GOT64, says PLT entry needed */
+#define R_X86_64_PLTOFF64	31	/* 64-bit GOT relative offset
+					   to PLT entry */
+#define R_X86_64_SIZE32		32	/* Size of symbol plus 32-bit addend */
+#define R_X86_64_SIZE64		33	/* Size of symbol plus 64-bit addend */
 #define R_X86_64_GOTPC32_TLSDESC 34	/* GOT offset for TLS descriptor.  */
 #define R_X86_64_TLSDESC_CALL   35	/* Marker for call through TLS
 					   descriptor.  */
