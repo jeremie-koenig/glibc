@@ -977,16 +977,8 @@ extern void _dl_mcount_internal (ElfW(Addr) frompc, ElfW(Addr) selfpc)
    calling function.  */
 extern void _dl_mcount_wrapper (void *selfpc);
 
-#ifdef HAVE_AUX_VECTOR
 /* Show the members of the auxiliary array passed up from the kernel.  */
 extern void _dl_show_auxv (void) internal_function;
-
-# define DL_MAIN_AUXVEC_DECL	, ElfW(auxv_t) *
-# define DL_MAIN_AUXVEC_PARAM	, auxv
-#else
-# define DL_MAIN_AUXVEC_DECL
-# define DL_MAIN_AUXVEC_PARAM
-#endif
 
 /* Return all environment variables starting with `LD_', one after the
    other.  */
@@ -1024,8 +1016,8 @@ extern void *_dl_sysdep_read_whole_file (const char *file, size_t *sizep,
 extern ElfW(Addr) _dl_sysdep_start (void **start_argptr,
 				    void (*dl_main) (const ElfW(Phdr) *phdr,
 						     ElfW(Word) phnum,
-						     ElfW(Addr) *user_entry
-						     DL_MAIN_AUXVEC_DECL))
+						     ElfW(Addr) *user_entry,
+						     ElfW(auxv_t) *auxv))
      attribute_hidden;
 
 extern void _dl_sysdep_start_cleanup (void)
