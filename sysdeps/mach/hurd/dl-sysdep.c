@@ -20,11 +20,7 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-/* Is this the right solution?  */
 #ifdef SHARED
-// Or rather this one? #if IS_IN_rtld /* Only to be used in the rtld case.  */
-// Or move that file to rtld-*?
-// Or some other Makefile magic?
 
 #include <hurd.h>
 #include <link.h>

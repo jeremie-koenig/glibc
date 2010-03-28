@@ -3,8 +3,8 @@ Subject: [PATCH] dl-sysdep.c_SHARED
 
 2009-08-03  Thomas Schwinge  <tschwinge@gnu.org>
 
-	* sysdeps/mach/hurd/dl-sysdep.c: Content is only needed in certain
-	cases.
+	* sysdeps/mach/hurd/dl-sysdep.c: Content is only needed in the [SHARED]
+	case.
 
 ---
 
