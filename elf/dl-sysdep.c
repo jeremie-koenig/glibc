@@ -62,9 +62,7 @@ int __libc_multiple_libcs = 0;	/* Defining this here avoids the inclusion
 /* This variable contains the lowest stack address ever used.  */
 void *__libc_stack_end attribute_relro = NULL;
 rtld_hidden_data_def(__libc_stack_end)
-#ifdef HAVE_AUX_VECTOR
 static ElfW(auxv_t) *_dl_auxv attribute_relro;
-#endif
 void *_dl_random attribute_relro = NULL;
 
 #ifndef DL_FIND_ARG_COMPONENTS
@@ -87,15 +85,12 @@ void *_dl_random attribute_relro = NULL;
 ElfW(Addr)
 _dl_sysdep_start (void **start_argptr,
 		  void (*dl_main) (const ElfW(Phdr) *phdr, ElfW(Word) phnum,
-				   ElfW(Addr) *user_entry
-				   DL_MAIN_AUXVEC_DECL DL_MAIN_AUXVEC_PARAM))
+				   ElfW(Addr) *user_entry, ElfW(auxv_t) *auxv))
 {
   const ElfW(Phdr) *phdr = NULL;
   ElfW(Word) phnum = 0;
   ElfW(Addr) user_entry;
-#ifdef MAIN_AUXVEC_ARG
   ElfW(auxv_t) *av;
-#endif
 #ifdef HAVE_AUX_SECURE
 # define set_seen(tag) (tag)	/* Evaluate for the side effects.  */
 # define set_seen_secure() ((void) 0)

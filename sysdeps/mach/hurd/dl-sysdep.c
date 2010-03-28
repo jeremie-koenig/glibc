@@ -126,7 +126,7 @@ static void fmh(void) {
 ElfW(Addr)
 _dl_sysdep_start (void **start_argptr,
 		  void (*dl_main) (const ElfW(Phdr) *phdr, ElfW(Word) phent,
-				   ElfW(Addr) *user_entry))
+				   ElfW(Addr) *user_entry, ElfW(auxv_t) *auxv))
 {
   void go (intptr_t *argdata)
     {
@@ -207,7 +207,7 @@ unfmh();			/* XXX */
 	 up and leave us to transfer control to USER_ENTRY.  */
       (*dl_main) ((const ElfW(Phdr) *) _dl_hurd_data->phdr,
 		  _dl_hurd_data->phdrsz / sizeof (ElfW(Phdr)),
-		  &_dl_hurd_data->user_entry);
+		  &_dl_hurd_data->user_entry, NULL);
 
       /* The call above might screw a few things up.
 
@@ -642,6 +642,14 @@ _hurd_intr_rpc_mach_msg (mach_msg_header_t *msg,
 {
   return __mach_msg (msg, option, send_size, rcv_size, rcv_name,
 		     timeout, notify);
+}
+
+
+void
+internal_function
+_dl_show_auxv (void)
+{
+  /* There is nothing to print.  Hurd has no auxiliary vector.  */
 }
 
 

@@ -182,8 +182,7 @@ extern struct rtld_global_ro _rtld_local_ro
 
 
 static void dl_main (const ElfW(Phdr) *phdr, ElfW(Word) phnum,
-		     ElfW(Addr) *user_entry
-		     DL_MAIN_AUXVEC_DECL);
+		     ElfW(Addr) *user_entry, ElfW(auxv_t) *auxv);
 
 /* These two variables cannot be moved into .data.rel.ro.  */
 static struct libname_list _dl_rtld_libname;
@@ -883,8 +882,8 @@ static int version_info attribute_relro;
 static void
 dl_main (const ElfW(Phdr) *phdr,
 	 ElfW(Word) phnum,
-	 ElfW(Addr) *user_entry
-	 DL_MAIN_AUXVEC_DECL DL_MAIN_AUXVEC_PARAM)
+	 ElfW(Addr) *user_entry,
+	 ElfW(auxv_t) *auxv)
 {
   const ElfW(Phdr) *ph;
   enum mode mode;
@@ -2588,7 +2587,6 @@ process_envvars (enum mode *modep)
 	    GLRO(dl_bind_not) = envline[9] != '\0';
 	  break;
 
-#ifdef HAVE_AUX_VECTOR
 	case 9:
 	  /* Test whether we want to see the content of the auxiliary
 	     array passed up from the kernel.  */
@@ -2596,7 +2594,6 @@ process_envvars (enum mode *modep)
 	      && memcmp (envline, "SHOW_AUXV", 9) == 0)
 	    _dl_show_auxv ();
 	  break;
-#endif
 
 	case 10:
 	  /* Mask for the important hardware capabilities.  */
