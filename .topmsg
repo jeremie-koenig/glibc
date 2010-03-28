@@ -1,10 +1,11 @@
 From: Thomas Schwinge <thomas@schwinge.name>
-Subject: [UNFINISHED] [PATCH] t/ld.so_auxv
+Subject: [PATCH] t/ld.so_auxv
 
 Cf. 3a56ea26730755076cb5bc1d07727c7a4fcb8fd7
 
-We don't get by with passing NULL as auxv to dl_main, because it will
-unconditionally be dereferenced in elf/rtld.c.
+2010-03-28  Thomas Schwinge  <thomas@schwinge.name>
 
-Either conditionalize all use of auxv on HAVE_AUX_VECTOR, or make all code cope
-with auxv == NULL.
+	* sysdeps/mach/hurd/dl-sysdep.c (_dl_sysdep_start): Adapt to auxv
+	changes in the generic code.
+	* elf/rtld.c (dl_main): Conditionalize the code that dereferences auxv
+	to [HAVE_AUX_VECTOR].
