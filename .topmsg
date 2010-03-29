@@ -1,9 +1,9 @@
 From: Thomas Schwinge <thomas@schwinge.name>
 Subject: [PATCH] unwind-resume.c
 
-Generalized unwind-resume support for GNU.
+Generalize unwind-resume support for GNU.
 
-2009-04-21  Thomas Schwinge  <tschwinge@gnu.org>
+2010-03-29  Thomas Schwinge  <thomas@schwinge.name>
 
 	* nptl/sysdeps/pthread/unwind-resume.c: Move...
 	* sysdeps/gnu/unwind-resume.c: ... here.
