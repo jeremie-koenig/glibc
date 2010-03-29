@@ -928,10 +928,6 @@ dl_main (const ElfW(Phdr) *phdr,
 
   if (*user_entry == (ElfW(Addr)) ENTRY_POINT)
     {
-#ifdef HAVE_AUX_VECTOR
-      ElfW(auxv_t) *av;
-#endif
-
       /* Ho ho.  We are not the program interpreter!  We are the program
 	 itself!  This means someone ran ld.so as a command.  Well, that
 	 might be convenient to do sometimes.  We support it by
@@ -1091,7 +1087,7 @@ of this helper program; chances are you did not intend to run this program.\n\
 #ifdef HAVE_AUX_VECTOR
       /* Adjust the on-stack auxiliary vector so that it looks like the
 	 binary was executed directly.  */
-      for (av = auxv; av->a_type != AT_NULL; av++)
+      for (ElfW(auxv_t) *av = auxv; av->a_type != AT_NULL; av++)
 	switch (av->a_type)
 	  {
 	  case AT_PHDR:

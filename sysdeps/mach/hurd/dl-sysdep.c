@@ -1,8 +1,6 @@
 /* Operating system support for run-time dynamic linker.  Hurd version.
-
-   Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004,
-   2008 Free Software Foundation, Inc.
-
+   Copyright (C) 1995,1996,1997,1998,1999,2000,2001,2002,2003,2004,2008,2010
+	Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -20,11 +18,7 @@
    Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
    02111-1307 USA.  */
 
-/* Is this the right solution?  */
 #ifdef SHARED
-// Or rather this one? #if IS_IN_rtld /* Only to be used in the rtld case.  */
-// Or move that file to rtld-*?
-// Or some other Makefile magic?
 
 #include <hurd.h>
 #include <link.h>
@@ -126,7 +120,8 @@ static void fmh(void) {
 ElfW(Addr)
 _dl_sysdep_start (void **start_argptr,
 		  void (*dl_main) (const ElfW(Phdr) *phdr, ElfW(Word) phent,
-				   ElfW(Addr) *user_entry, ElfW(auxv_t) *auxv))
+				   ElfW(Addr) *user_entry,
+				   ElfW(auxv_t) *auxv)))
 {
   void go (intptr_t *argdata)
     {
@@ -207,7 +202,7 @@ unfmh();			/* XXX */
 	 up and leave us to transfer control to USER_ENTRY.  */
       (*dl_main) ((const ElfW(Phdr) *) _dl_hurd_data->phdr,
 		  _dl_hurd_data->phdrsz / sizeof (ElfW(Phdr)),
-		  &_dl_hurd_data->user_entry, NULL);
+		  &_dl_hurd_data->user_entry, NULLy);
 
       /* The call above might screw a few things up.
 
