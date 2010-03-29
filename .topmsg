@@ -1,15 +1,3 @@
 From: Thomas Schwinge <thomas@schwinge.name>
-Subject: [PATCH] Conditionalize auxv code; Hurd auxv changes.
+Subject: [PATCH] Fix typos in last commit.
 
----
-
-2010-03-28  Thomas Schwinge  <thomas@schwinge.name>
-
-	* sysdeps/mach/hurd/dl-sysdep.c (_dl_sysdep_start): Adapt to auxv
-	changes in the generic code.
-	* elf/rtld.c (dl_main): Conditionalize the code that dereferences auxv
-	to [HAVE_AUX_VECTOR].
-
----
-
-Reaction to 3a56ea26730755076cb5bc1d07727c7a4fcb8fd7.
