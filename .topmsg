@@ -3,11 +3,10 @@ Subject: [PATCH] unwind-resume.c
 
 Generalize unwind-resume support for GNU.
 
-2010-03-29  Thomas Schwinge  <thomas@schwinge.name>
+2010-03-30  Thomas Schwinge  <thomas@schwinge.name>
 
 	* nptl/sysdeps/pthread/unwind-resume.c: Move...
 	* sysdeps/gnu/unwind-resume.c: ... here.
-	(init): Generalize a string.
 	* nptl/sysdeps/pthread/rt-unwind-resume.c: Move...
 	* sysdeps/gnu/rt-unwind-resume.c: ... here.
 	* nptl/sysdeps/pthread/Makefile: Move handling of unwind-resume.c and
