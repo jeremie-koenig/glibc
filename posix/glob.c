@@ -436,6 +436,8 @@ glob (pattern, flags, errfunc, pglob)
 	}
     }
 
+  oldcount = pglob->gl_pathc + pglob->gl_offs;
+
   /* Find the filename.  */
   filename = strrchr (pattern, '/');
 #if defined __MSDOS__ || defined WINDOWS32
@@ -552,8 +554,6 @@ glob (pattern, flags, errfunc, pglob)
 	  return val;
 	}
     }
-
-  oldcount = pglob->gl_pathc + pglob->gl_offs;
 
 #ifndef VMS
   if ((flags & (GLOB_TILDE|GLOB_TILDE_CHECK)) && dirname[0] == '~')
@@ -1042,9 +1042,9 @@ glob (pattern, flags, errfunc, pglob)
 	     : (__stat64 (pglob->gl_pathv[i], &st64) == 0
 		&& S_ISDIR (st64.st_mode))))
 	  {
- 	    size_t len = strlen (pglob->gl_pathv[i]) + 2;
+	    size_t len = strlen (pglob->gl_pathv[i]) + 2;
 	    char *new = realloc (pglob->gl_pathv[i], len);
- 	    if (new == NULL)
+	    if (new == NULL)
 	      {
 		globfree (pglob);
 		pglob->gl_pathc = 0;
