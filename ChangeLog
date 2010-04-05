@@ -1,3 +1,94 @@
+2010-04-04  Ulrich Drepper  <drepper@redhat.com>
+
+	[BZ #11276]
+	* sysdeps/posix/remove.c (IS_NO_DIRECTORY_ERROR): Define.
+	(remove): Use IS_NO_DIRECTORY_ERROR to check for file being no
+	directory.
+	* sysdeps/unix/sysv/linux/remove.c: New file.
+
+	* conform/data/sys/stat.h-data: Fix testing of S_IS* macros.
+
+	[BZ #11279]
+	* io/sys/stat.h: Always define S_ISSOCK for XPG6 and up.
+
+	[BZ #11287]
+	* csu/Makefile ($(objpfx)version-info.h): Handle newer kernel headers
+	which don't define UTS_RELEASE.
+
+2010-04-04  H.J. Lu  <hongjiu.lu@intel.com>
+	    Ulrich Drepper  <drepper@redhat.com>
+
+	[BZ #11292]
+	* sysdeps/x86_64/multiarch/init-arch.c (__init_cpu_features): Allow
+	concurrent initialization and use of __cpu_features.
+
+2010-04-04  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/x86_64/multiarch/init-arch.h (cpu_features): Add tag to
+	the enum.
+
+2010-04-03  Ulrich Drepper  <drepper@redhat.com>
+
+	[BZ #11333]
+	* sysdeps/unix/readdir_r.c (__READDIR_R): Add support for platforms
+	which include unnecessary padding in d_reclen.
+	* sysdeps/unix/sysv/linux/i386/readdir64_r.c: Select work-around for
+	unnecessary padding.
+
+	[BZ #11387]
+	* sysdeps/unix/sysv/linux/ifaddrs.c (map_newlin): Don't abort on
+	unknown interface, return -1.
+	(getifaddrs_internal): Rename from getifaddrs.  Handle errors in
+	map_newlink be returning -EAGAIN.
+	(getifaddrs): If -EAGAIN is returned from getifaddrs_internal try
+	again.
+
+2010-03-25  Ryan S. Arnold  <rsa@us.ibm.com>
+
+	* sysdeps/unix/sysv/linux/getsysstats.c (next_line): Remove
+	redundant and incorrect else block which overwrites current line
+	with the partial next line.
+
+2010-04-03  Ulrich Drepper  <drepper@redhat.com>
+
+	[BZ #11438]
+	* posix/gai.conf: Document problems with IPv4 site-local addresses and
+	NATs.
+
+	[BZ #11449]
+	* crypt/crypt_util.c (__init_des_r): Add memory barrier before setting
+	small_tables_initialized.
+
+	* malloc/malloc.c (_int_free): Add one more sanity check for fastbins.
+
+	* malloc/malloc.c (set_max_fast): Fix computation of the value.
+
+2010-03-30  David S. Miller  <davem@davemloft.net>
+
+	* sysdeps/unix/sysv/linux/mmap64.c (__mmap64): Fix
+	MMAP2_PAGE_SHIFT test.
+
+2010-03-29  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/bits/socket.h: Define MSG_WAITFORONE.
+
+2010-03-28  Thomas Schwinge  <thomas@schwinge.name>
+
+	* sysdeps/mach/hurd/dl-sysdep.c (_dl_sysdep_start): Adapt to auxv
+	changes in the generic code.
+	* elf/rtld.c (dl_main): Conditionalize the code that dereferences auxv
+	to [HAVE_AUX_VECTOR].
+
+2010-03-27  Ulrich Drepper  <drepper@redhat.com>
+
+	* sysdeps/unix/sysv/linux/getpagesize.c (__getpagesize): If
+	__ASSUME_AT_PAGESIZE we can rely on the value being set.
+
+	* include/wchar.h: Undefine __need_mbstate_t and __need_wint_t
+	unconditionally in the end.
+
+	* posix/glob.c (glob): Initialize oldcount early, too.
+
 2010-03-26  Ulrich Drepper  <drepper@redhat.com>
 
 	* sysdeps/unix/sysv/linux/i386/fcntl.c: Define miss_F_GETOWN_EX
