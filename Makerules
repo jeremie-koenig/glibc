@@ -111,14 +111,16 @@ endif # $(versioning) = yes
 
 ifndef avoid-generated
 before-compile := $(common-objpfx)libc-abis.h $(before-compile)
-$(common-objpfx)libc-abis.h: $(..)scripts/gen-libc-abis \
+$(common-objpfx)libc-abis.h: $(common-objpfx)libc-abis.stamp; @:
+$(common-objpfx)libc-abis.stamp: $(..)scripts/gen-libc-abis \
 			     $(firstword $(wildcard $(sysdirs:=/libc-abis)) \
 					 $(..)libc-abis) \
 			     $(..)Makerules
 	$(SHELL) $< \
 		 $(base-machine)-$(config-vendor)-$(config-os) \
-		 < $(word 2,$^) > $@T
-	$(move-if-change) $@T $@
+		 < $(word 2,$^) > $(@:.stamp=.h)T
+	$(move-if-change) $(@:.stamp=.h)T $(@:.stamp=.h)
+	touch $@
 common-generated += $(common-objpfx)libc-abis.h
 endif # avoid-generated
 
@@ -266,20 +268,6 @@ ifndef sysd-rules-done
 # Don't do deps until this exists, because it provides rules to make the deps.
 no_deps=t
 endif
-
--include $(common-objpfx)includes.mk
-ifneq ($(+common-includes),$(saved-includes))
-# Recreate includes.mk (and includes).
-includes-force = FORCE
-FORCE:
-endif
-$(common-objpfx)includes.mk: $(includes-force)
-	-@rm -f $@T $(common-objpfx)includesT
-	for inc in $(+common-includes); do echo "$$inc"; done \
-	  > $(common-objpfx)includesT
-	mv -f $(common-objpfx)includesT $(common-objpfx)includes
-	echo 'saved-includes := $(+common-includes)' > $@T
-	mv -f $@T $@
 
 define o-iterator-doit
 $(objpfx)%$o: %.S $(before-compile); $$(compile-command.S)
