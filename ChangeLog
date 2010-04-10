@@ -1,3 +1,20 @@
+2010-04-09  Ulrich Drepper  <drepper@redhat.com>
+
+	* nscd/aicache.c (addhstaiX): Correct passing memory to address
+	list to gethostbyname4_r functions.
+
+	* resolv/nss_dns/dns-host.c (gaih_getanswer_slice): Optimize
+	copying of h_name.
+
+2010-04-09  Roland McGrath  <roland@redhat.com>
+
+	* Makerules ($(common-objpfx)libc-abis.h): Depend on libc-abis.stamp.
+	($(common-objpfx)libc-abis.stamp): New target, rule moved from
+	libc-abis.h target.  Use a stamp file to avoid repeating no-op
+	move-if-change on every run.
+
+	* posix/Makefile (tst-chmod-ARGS): Pass $(objdir), not `pwd`.
+
 2010-04-08  Ulrich Drepper  <drepper@redhat.com>
 
 	[BZ #10915]
@@ -11,14 +28,6 @@
 
 	* malloc/malloc.c (_int_malloc): Return NULL if printing error message
 	returns.
-
-2010-03-30  Daniel Jacobowitz  <dan@codesourcery.com>
-
-	* Makeconfig (+common-includes): Define.
-	(+includes): Use @$(common-objpfx)includes.
-	* Makefile (postclean): Remove includes and includes.mk.
-	* Makerules ($(common-objpfx)includes.mk): Include and create
-	includes.mk.  Create includes.
 
 2010-04-07  Andreas Schwab  <schwab@redhat.com>
 
@@ -268,6 +277,7 @@
 
 2010-03-25  Andreas Schwab  <schwab@redhat.com>
 
+	[BZ #11001]
 	* sysdeps/posix/getaddrinfo.c (gaih_inet): Reset no_data before
 	each action.
 
