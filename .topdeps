@@ -29,3 +29,4 @@ t/unwind-resume.c
 t/ld.so_auxv
 t/grantpt
 posix/regex_internal.c/MAX_undefined
+t/__i686_defined
