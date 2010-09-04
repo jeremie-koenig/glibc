@@ -461,13 +461,6 @@ _hurd_internal_post_signal (struct hurd_sigstate *ss,
 			    mach_msg_type_name_t reply_port_type,
 			    int untraced)
 {
-  error_t err;
-  struct machine_thread_all_state thread_state;
-  enum { stop, ignore, core, term, handle } act;
-  sighandler_t handler;
-  sigset_t pending;
-  int ss_suspended;
-
   /* Reply to this sig_post message.  */
   __typeof (__msg_sig_post_reply) *reply_rpc
     = (untraced ? __msg_sig_post_untraced_reply : __msg_sig_post_reply);
@@ -487,6 +480,9 @@ _hurd_internal_post_signal (struct hurd_sigstate *ss,
    being traced, return 0 with SS unlocked.   */
 int post_signal (void)
 {
+  struct machine_thread_all_state thread_state;
+  enum { stop, ignore, core, term, handle } act;
+  int ss_suspended;
 
   /* Mark the signal as pending.  */
   void mark_pending (void)
@@ -550,6 +546,9 @@ int post_signal (void)
 	/* The thread that will run the handler is already suspended.  */
 	ss_suspended = 1;
     }
+
+  error_t err;
+  sighandler_t handler;
 
   if (signo == 0)
     {
@@ -975,6 +974,8 @@ int post_signal (void)
    SS unlocked.  */
 int check_pending_signal (void)
 {
+    sigset_t pending;
+
     /* Return nonzero if SS has any signals pending we should worry about.
        We don't worry about any pending signals if we are stopped, nor if
        SS is in a critical section.  We are guaranteed to get a sig_post
