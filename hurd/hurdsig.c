@@ -1,4 +1,4 @@
-/* Copyright (C) 1991,92,93,94,95,96,97,98,99,2000,2001,2002,2005,2008
+/* Copyright (C) 1991,92,93,94,95,96,97,98,99,2000,2001,2002,2005,2008,2011
    	Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -482,6 +482,12 @@ _hurd_internal_post_signal (struct hurd_sigstate *ss,
 	assert_perror (err);
     }
 
+/* Actual delivery of a single signal.  Called with SS unlocked.  When
+   the signal is delivered, return 1 with SS locked.  If the signal is
+   being traced, return 0 with SS unlocked.   */
+int post_signal (void)
+{
+
   /* Mark the signal as pending.  */
   void mark_pending (void)
     {
@@ -553,10 +559,8 @@ _hurd_internal_post_signal (struct hurd_sigstate *ss,
 
       /* This call is just to check for pending signals.  */
       __spin_lock (&ss->lock);
-      goto check_pending_signals;
+      return 1;
     }
-
- post_signal:
 
   thread_state.set = 0;		/* We know nothing.  */
 
@@ -620,7 +624,7 @@ _hurd_internal_post_signal (struct hurd_sigstate *ss,
 	    suspend ();
 	  __spin_unlock (&ss->lock);
 	  reply ();
-	  return;
+	  return 0;
 	}
 
       handler = ss->actions[signo].sa_handler;
@@ -962,13 +966,15 @@ _hurd_internal_post_signal (struct hurd_sigstate *ss,
       }
     }
 
-  /* The signal has either been ignored or is now being handled.  We can
-     consider it delivered and reply to the killer.  */
-  reply ();
+  return 1;
+}
 
-  /* We get here unless the signal was fatal.  We still hold SS->lock.
-     Check for pending signals, and loop to post them.  */
-  {
+/* Try to find a non-blocked pending signal and deliver it.  Called with
+   SS locked.  If a signal is delivered, return 1 and leave SS locked.
+   If the signal is traced, or if none can be found, return 0 with
+   SS unlocked.  */
+int check_pending_signal (void)
+{
     /* Return nonzero if SS has any signals pending we should worry about.
        We don't worry about any pending signals if we are stopped, nor if
        SS is in a critical section.  We are guaranteed to get a sig_post
@@ -982,7 +988,6 @@ _hurd_internal_post_signal (struct hurd_sigstate *ss,
 	return pending = ss->pending & ~ss->blocked;
       }
 
-  check_pending_signals:
     untraced = 0;
 
     if (signals_pending ())
@@ -994,7 +999,8 @@ _hurd_internal_post_signal (struct hurd_sigstate *ss,
 	      __sigdelset (&ss->pending, signo);
 	      *detail = ss->pending_data[signo];
 	      __spin_unlock (&ss->lock);
-	      goto post_signal;
+
+	      return post_signal ();
 	    }
       }
 
@@ -1046,7 +1052,24 @@ _hurd_internal_post_signal (struct hurd_sigstate *ss,
 	  }
 	__spin_unlock (&ss->lock);
       }
+
+    return 0;
   }
+
+
+  if (! post_signal ())
+    return;
+
+  if (signo != 0)
+    {
+      /* The signal has either been ignored or is now being handled.  We can
+	 consider it delivered and reply to the killer.  */
+      reply ();
+    }
+
+  /* We get here unless the signal was fatal.  We still hold SS->lock.
+     Check for pending signals, and loop to post them.  */
+  while (check_pending_signal ());
 
   /* All pending signals delivered to all threads.
      Now we can send the reply message even for signal 0.  */
