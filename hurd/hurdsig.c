@@ -453,32 +453,13 @@ weak_alias (_hurdsig_preemptors, _hurdsig_preempters)
 #define STOPSIGS (sigmask (SIGTTIN) | sigmask (SIGTTOU) | \
 		  sigmask (SIGSTOP) | sigmask (SIGTSTP))
 
-/* Deliver a signal.  SS is not locked.  */
-void
-_hurd_internal_post_signal (struct hurd_sigstate *ss,
-			    int signo, struct hurd_signal_detail *detail,
-			    mach_port_t reply_port,
-			    mach_msg_type_name_t reply_port_type,
-			    int untraced)
-{
-  /* Reply to this sig_post message.  */
-  __typeof (__msg_sig_post_reply) *reply_rpc
-    = (untraced ? __msg_sig_post_untraced_reply : __msg_sig_post_reply);
-  void reply (void)
-    {
-      error_t err;
-      if (reply_port == MACH_PORT_NULL)
-	return;
-      err = (*reply_rpc) (reply_port, reply_port_type, 0);
-      reply_port = MACH_PORT_NULL;
-      if (err != MACH_SEND_INVALID_DEST) /* Ignore dead reply port.  */
-	assert_perror (err);
-    }
-
 /* Actual delivery of a single signal.  Called with SS unlocked.  When
    the signal is delivered, return 1 with SS locked.  If the signal is
    being traced, return 0 with SS unlocked.   */
-int post_signal (void)
+static int
+post_signal (struct hurd_sigstate *ss,
+	     int signo, struct hurd_signal_detail *detail,
+	     int untraced, void (*reply) (void))
 {
   struct machine_thread_all_state thread_state;
   enum { stop, ignore, core, term, handle } act;
@@ -866,7 +847,7 @@ int post_signal (void)
 					 as a unit.  */
 				      crit ? 0 : signo, 1,
 				      &thread_state, &state_changed,
-				      &reply)
+				      reply)
 		 != MACH_PORT_NULL);
 
 	    if (crit)
@@ -968,12 +949,14 @@ int post_signal (void)
   return 1;
 }
 
-/* Try to find a non-blocked pending signal and deliver it.  Called with
-   SS locked.  If a signal is delivered, return 1 and leave SS locked.
-   If the signal is traced, or if none can be found, return 0 with
-   SS unlocked.  */
-int check_pending_signal (void)
+/* Try to find a non-blocked pending signal and deliver it, testing the
+   sigstate SS first.  Called with SS locked. If a pending signal is delivered,
+   return the corresponding sigstate, locked.  Otherwise, return NULL.  */
+static struct hurd_sigstate *
+check_pending_signal (struct hurd_sigstate *ss, void (*reply) (void), int poll)
 {
+    int signo;
+    struct hurd_signal_detail detail;
     sigset_t pending;
 
     /* Return nonzero if SS has any signals pending we should worry about.
@@ -989,8 +972,6 @@ int check_pending_signal (void)
 	return pending = ss->pending & ~ss->blocked;
       }
 
-    untraced = 0;
-
     if (signals_pending ())
       {
 	for (signo = 1; signo < NSIG; ++signo)
@@ -998,17 +979,20 @@ int check_pending_signal (void)
 	    {
 	    deliver_pending:
 	      __sigdelset (&ss->pending, signo);
-	      *detail = ss->pending_data[signo];
+	      detail = ss->pending_data[signo];
 	      __spin_unlock (&ss->lock);
 
-	      return post_signal ();
+	      if (post_signal (ss, signo, &detail, 0, reply))
+		return ss;
+	      else
+		return NULL;
 	    }
       }
 
     /* No pending signals left undelivered for this thread.
        If we were sent signal 0, we need to check for pending
        signals for all threads.  */
-    if (signo == 0)
+    if (poll)
       {
 	__spin_unlock (&ss->lock);
 	__mutex_lock (&_hurd_siglock);
@@ -1054,11 +1038,32 @@ int check_pending_signal (void)
 	__spin_unlock (&ss->lock);
       }
 
-    return 0;
-  }
+    return NULL;
+}
 
+/* Deliver a signal.  SS is not locked.  */
+void
+_hurd_internal_post_signal (struct hurd_sigstate *ss,
+			    int signo, struct hurd_signal_detail *detail,
+			    mach_port_t reply_port,
+			    mach_msg_type_name_t reply_port_type,
+			    int untraced)
+{
+  /* Reply to this sig_post message.  */
+  __typeof (__msg_sig_post_reply) *reply_rpc
+    = (untraced ? __msg_sig_post_untraced_reply : __msg_sig_post_reply);
+  void reply (void)
+    {
+      error_t err;
+      if (reply_port == MACH_PORT_NULL)
+	return;
+      err = (*reply_rpc) (reply_port, reply_port_type, 0);
+      reply_port = MACH_PORT_NULL;
+      if (err != MACH_SEND_INVALID_DEST) /* Ignore dead reply port.  */
+	assert_perror (err);
+    }
 
-  if (! post_signal ())
+  if (! post_signal (ss, signo, detail, untraced, reply))
     return;
 
   if (signo != 0)
@@ -1070,7 +1075,7 @@ int check_pending_signal (void)
 
   /* We get here unless the signal was fatal.  We still hold SS->lock.
      Check for pending signals, and loop to post them.  */
-  while (check_pending_signal ());
+  while (ss = check_pending_signal (ss, reply, signo == 0));
 
   /* All pending signals delivered to all threads.
      Now we can send the reply message even for signal 0.  */
