@@ -949,74 +949,42 @@ post_signal (struct hurd_sigstate *ss,
   return 1;
 }
 
-/* Try to find a non-blocked pending signal and deliver it, testing the
-   sigstate SS first.  Called with SS locked. If a pending signal is delivered,
-   return the corresponding sigstate, locked.  Otherwise, return NULL.  */
-static struct hurd_sigstate *
-check_pending_signal (struct hurd_sigstate *ss, void (*reply) (void), int poll)
+/* Return the set of pending signals in SS which should be delivered. */
+static sigset_t
+pending_signals (struct hurd_sigstate *ss)
+{
+  /* We don't worry about any pending signals if we are stopped, nor if
+     SS is in a critical section.  We are guaranteed to get a sig_post
+     message before any of them become deliverable: either the SIGCONT
+     signal, or a sig_post with SIGNO==0 as an explicit poll when the
+     thread finishes its critical section.  */
+  if (_hurd_stopped || __spin_lock_locked (&ss->critical_section_lock))
+    return 0;
+
+  return ss->pending & ~ss->blocked;
+}
+
+/* Post the specified pending signals in SS and return 1.  If one of
+   them is traced, abort immediately and return 0.  SS must be locked on
+   entry and will be unlocked in all cases.  */
+static int
+post_pending (struct hurd_sigstate *ss, sigset_t pending, void (*reply) (void))
 {
     int signo;
     struct hurd_signal_detail detail;
-    sigset_t pending;
 
-    /* Return nonzero if SS has any signals pending we should worry about.
-       We don't worry about any pending signals if we are stopped, nor if
-       SS is in a critical section.  We are guaranteed to get a sig_post
-       message before any of them become deliverable: either the SIGCONT
-       signal, or a sig_post with SIGNO==0 as an explicit poll when the
-       thread finishes its critical section.  */
-    inline int signals_pending (void)
-      {
-	if (_hurd_stopped || __spin_lock_locked (&ss->critical_section_lock))
-	  return 0;
-	return pending = ss->pending & ~ss->blocked;
-      }
-
-    if (signals_pending ())
-      {
 	for (signo = 1; signo < NSIG; ++signo)
 	  if (__sigismember (&pending, signo))
 	    {
-	    deliver_pending:
 	      __sigdelset (&ss->pending, signo);
 	      detail = ss->pending_data[signo];
 	      __spin_unlock (&ss->lock);
 
-	      if (post_signal (ss, signo, &detail, 0, reply))
-		return ss;
-	      else
-		return NULL;
+	      /* Will reacquire the lock, except if the signal is traced.  */
+	      if (! post_signal (ss, signo, &detail, 0, reply))
+		return 0;
 	    }
-      }
 
-    /* No pending signals left undelivered for this thread.
-       If we were sent signal 0, we need to check for pending
-       signals for all threads.  */
-    if (poll)
-      {
-	__spin_unlock (&ss->lock);
-	__mutex_lock (&_hurd_siglock);
-	for (ss = _hurd_sigstates; ss != NULL; ss = ss->next)
-	  {
-	    __spin_lock (&ss->lock);
-	    for (signo = 1; signo < NSIG; ++signo)
-	      if (__sigismember (&ss->pending, signo)
-		  && (!__sigismember (&ss->blocked, signo)
-		      /* We "deliver" immediately pending blocked signals whose
-			 action might be to ignore, so that if ignored they are
-			 dropped right away.  */
-		      || ss->actions[signo].sa_handler == SIG_IGN
-		      || ss->actions[signo].sa_handler == SIG_DFL))
-		{
-		  mutex_unlock (&_hurd_siglock);
-		  goto deliver_pending;
-		}
-	    __spin_unlock (&ss->lock);
-	  }
-	__mutex_unlock (&_hurd_siglock);
-      }
-    else
-      {
 	/* No more signals pending; SS->lock is still locked.
 	   Wake up any sigsuspend call that is blocking SS->thread.  */
 	if (ss->suspended != MACH_PORT_NULL)
@@ -1036,9 +1004,39 @@ check_pending_signal (struct hurd_sigstate *ss, void (*reply) (void), int poll)
 	    assert_perror (err);
 	  }
 	__spin_unlock (&ss->lock);
-      }
 
-    return NULL;
+    return 1;
+}
+
+/* Post all the pending signals of all threads and return 1.  If a traced
+   signal is encountered, abort immediately and return 0.  */
+static int
+post_all_pending_signals (void (*reply) (void))
+{
+  struct hurd_sigstate *ss;
+  sigset_t pending;
+
+  for (;;)
+    {
+      __mutex_lock (&_hurd_siglock);
+      for (ss = _hurd_sigstates; ss != NULL; ss = ss->next)
+        {
+	  __spin_lock (&ss->lock);
+
+	  pending = pending_signals (ss);
+	  if (pending)
+	    /* post_pending() below will unlock SS. */
+	    break;
+
+	  __spin_unlock (&ss->lock);
+	}
+      __mutex_unlock (&_hurd_siglock);
+
+      if (! pending)
+	return 1;
+      if (! post_pending (ss, pending, reply))
+	return 0;
+    }
 }
 
 /* Deliver a signal.  SS is not locked.  */
@@ -1066,20 +1064,28 @@ _hurd_internal_post_signal (struct hurd_sigstate *ss,
   if (! post_signal (ss, signo, detail, untraced, reply))
     return;
 
+  /* The signal was neither fatal nor traced.  We still hold SS->lock.  */
   if (signo != 0)
     {
       /* The signal has either been ignored or is now being handled.  We can
 	 consider it delivered and reply to the killer.  */
       reply ();
+
+      /* Post any pending signals for this thread.  */
+      if (! post_pending (ss, pending_signals (ss), reply))
+	return;
     }
+  else
+    {
+      /* We need to check for pending signals for all threads.  */
+      __spin_unlock (&ss->lock);
+      if (! post_all_pending_signals (reply))
+	return;
 
-  /* We get here unless the signal was fatal.  We still hold SS->lock.
-     Check for pending signals, and loop to post them.  */
-  while (ss = check_pending_signal (ss, reply, signo == 0));
-
-  /* All pending signals delivered to all threads.
-     Now we can send the reply message even for signal 0.  */
-  reply ();
+      /* All pending signals delivered to all threads.
+	 Now we can send the reply message even for signal 0.  */
+      reply ();
+    }
 }
 
 /* Decide whether REFPORT enables the sender to send us a SIGNO signal.
