@@ -443,6 +443,30 @@ abort_all_rpcs (int signo, struct machine_thread_all_state *state, int live)
       }
 }
 
+/* Wake up any sigsuspend call that is blocking SS->thread.  SS must be
+   locked.  */
+static void
+wake_sigsuspend (struct hurd_sigstate *ss)
+{
+  error_t err;
+  mach_msg_header_t msg;
+
+  if (ss->suspended == MACH_PORT_NULL)
+    return;
+
+  /* There is a sigsuspend waiting.  Tell it to wake up.  */
+  msg.msgh_bits = MACH_MSGH_BITS (MACH_MSG_TYPE_MAKE_SEND, 0);
+  msg.msgh_remote_port = ss->suspended;
+  msg.msgh_local_port = MACH_PORT_NULL;
+  /* These values do not matter.  */
+  msg.msgh_id = 8675309; /* Jenny, Jenny.  */
+  ss->suspended = MACH_PORT_NULL;
+  err = __mach_msg (&msg, MACH_SEND_MSG, sizeof msg, 0,
+      MACH_PORT_NULL, MACH_MSG_TIMEOUT_NONE,
+      MACH_PORT_NULL);
+  assert_perror (err);
+}
+
 struct hurd_signal_preemptor *_hurdsig_preemptors = 0;
 sigset_t _hurdsig_preempted_set;
 
@@ -933,6 +957,9 @@ post_signal (struct hurd_sigstate *ss,
 	    && signo != SIGILL && signo != SIGTRAP)
 	  ss->actions[signo].sa_handler = SIG_DFL;
 
+	/* Any sigsuspend call must return after the handler does.  */
+	wake_sigsuspend (ss);
+
 	/* Start the thread running the handler (or possibly waiting for an
 	   RPC reply before running the handler).  */
 	err = __thread_set_state (ss->thread, MACHINE_THREAD_STATE_FLAVOR,
@@ -985,24 +1012,7 @@ post_pending (struct hurd_sigstate *ss, sigset_t pending, void (*reply) (void))
 	  return 0;
       }
 
-  /* No more signals pending; SS->lock is still locked.
-     Wake up any sigsuspend call that is blocking SS->thread.  */
-  if (ss->suspended != MACH_PORT_NULL)
-    {
-      /* There is a sigsuspend waiting.  Tell it to wake up.  */
-      error_t err;
-      mach_msg_header_t msg;
-      msg.msgh_bits = MACH_MSGH_BITS (MACH_MSG_TYPE_MAKE_SEND, 0);
-      msg.msgh_remote_port = ss->suspended;
-      msg.msgh_local_port = MACH_PORT_NULL;
-      /* These values do not matter.  */
-      msg.msgh_id = 8675309; /* Jenny, Jenny.  */
-      ss->suspended = MACH_PORT_NULL;
-      err = __mach_msg (&msg, MACH_SEND_MSG, sizeof msg, 0,
-			MACH_PORT_NULL, MACH_MSG_TIMEOUT_NONE,
-			MACH_PORT_NULL);
-      assert_perror (err);
-    }
+  /* No more signals pending; SS->lock is still locked.  */
   __spin_unlock (&ss->lock);
 
   return 1;
