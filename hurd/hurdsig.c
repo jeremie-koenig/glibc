@@ -558,8 +558,11 @@ post_signal (struct hurd_sigstate *ss,
   if (signo == 0)
     {
       if (untraced)
-	/* This is PTRACE_CONTINUE.  */
-	resume ();
+	{
+	  /* This is PTRACE_CONTINUE.  */
+	  act = ignore;
+	  resume ();
+	}
 
       /* This call is just to check for pending signals.  */
       __spin_lock (&ss->lock);
