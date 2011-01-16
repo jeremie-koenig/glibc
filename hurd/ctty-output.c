@@ -1,5 +1,5 @@
 /* _hurd_ctty_output -- Do an output RPC and generate SIGTTOU if necessary.
-   Copyright (C) 1995,97,99 Free Software Foundation, Inc.
+   Copyright (C) 1995,97,99,2011 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -35,16 +35,19 @@ _hurd_ctty_output (io_t port, io_t ctty, error_t (*rpc) (io_t))
 
       do
 	{
+	  struct sigaction *actions;
+
 	  /* Don't use the ctty io port if we are blocking or ignoring
 	     SIGTTOU.  We redo this check at the top of the loop in case
 	     the signal handler changed the state.  */
-	  __spin_lock (&ss->lock);
+	  _hurd_sigstate_lock (ss);
+	  actions = _hurd_sigstate_actions (ss);
 	  if (__sigismember (&ss->blocked, SIGTTOU) ||
-	      ss->actions[SIGTTOU].sa_handler == SIG_IGN)
+	      actions[SIGTTOU].sa_handler == SIG_IGN)
 	    err = EIO;
 	  else
 	    err = 0;
-	  __spin_unlock (&ss->lock);
+	  _hurd_sigstate_unlock (ss);
 
 	  if (err)
 	    return (*rpc) (port);
@@ -71,10 +74,11 @@ _hurd_ctty_output (io_t port, io_t ctty, error_t (*rpc) (io_t))
 		     SIGTTOU or resumed after being stopped.  Now this is
 		     still a "system call", so check to see if we should
 		  restart it.  */
-		  __spin_lock (&ss->lock);
-		  if (!(ss->actions[SIGTTOU].sa_flags & SA_RESTART))
+		  _hurd_sigstate_lock (ss);
+		  actions = _hurd_sigstate_actions (ss);
+		  if (!(actions[SIGTTOU].sa_flags & SA_RESTART))
 		    err = EINTR;
-		  __spin_unlock (&ss->lock);
+		  _hurd_sigstate_unlock (ss);
 		}
 	    }
 	  /* If the last RPC generated a SIGTTOU, loop to try it again.  */

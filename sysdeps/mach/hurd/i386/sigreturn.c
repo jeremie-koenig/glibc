@@ -1,4 +1,5 @@
-/* Copyright (C) 1991,92,94,95,96,97,98,2001 Free Software Foundation, Inc.
+/* Copyright (C) 1991,92,94,95,96,97,98,2001,2011
+       Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -39,7 +40,7 @@ __sigreturn (struct sigcontext *scp)
     }
 
   ss = _hurd_self_sigstate ();
-  __spin_lock (&ss->lock);
+  _hurd_sigstate_lock (ss);
 
   /* Remove the link on the `active resources' chain added by
      _hurd_setup_sighandler.  Its purpose was to make sure
@@ -51,19 +52,19 @@ __sigreturn (struct sigcontext *scp)
   ss->intr_port = scp->sc_intr_port;
 
   /* Check for pending signals that were blocked by the old set.  */
-  if (ss->pending & ~ss->blocked)
+  if (_hurd_sigstate_pending (ss) & ~ss->blocked)
     {
       /* There are pending signals that just became unblocked.  Wake up the
 	 signal thread to deliver them.  But first, squirrel away SCP where
 	 the signal thread will notice it if it runs another handler, and
 	 arrange to have us called over again in the new reality.  */
       ss->context = scp;
-      __spin_unlock (&ss->lock);
+      _hurd_sigstate_unlock (ss);
       __msg_sig_post (_hurd_msgport, 0, 0, __mach_task_self ());
       /* If a pending signal was handled, sig_post never returned.
 	 If it did return, the pending signal didn't run a handler;
 	 proceed as usual.  */
-      __spin_lock (&ss->lock);
+      _hurd_sigstate_lock (ss);
       ss->context = NULL;
     }
 
@@ -74,7 +75,7 @@ __sigreturn (struct sigcontext *scp)
       abort ();
     }
   else
-    __spin_unlock (&ss->lock);
+    _hurd_sigstate_unlock (ss);
 
   /* Destroy the MiG reply port used by the signal handler, and restore the
      reply port in use by the thread when interrupted.  */

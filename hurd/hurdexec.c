@@ -1,4 +1,4 @@
-/* Copyright (C) 1991,92,93,94,95,96,97,99,2001,02
+/* Copyright (C) 1991,92,93,94,95,96,97,99,2001,2002,2011
    	Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -109,12 +109,13 @@ _hurd_exec (task_t task, file_t file,
   assert (! __spin_lock_locked (&ss->critical_section_lock));
   __spin_lock (&ss->critical_section_lock);
 
-  __spin_lock (&ss->lock);
+  _hurd_sigstate_lock (ss);
+  struct sigaction *actions = _hurd_sigstate_actions (ss);
   ints[INIT_SIGMASK] = ss->blocked;
-  ints[INIT_SIGPENDING] = ss->pending;
+  ints[INIT_SIGPENDING] = _hurd_sigstate_pending (ss);
   ints[INIT_SIGIGN] = 0;
   for (i = 1; i < NSIG; ++i)
-    if (ss->actions[i].sa_handler == SIG_IGN)
+    if (actions[i].sa_handler == SIG_IGN)
       ints[INIT_SIGIGN] |= __sigmask (i);
 
   /* We hold the sigstate lock until the exec has failed so that no signal
@@ -125,7 +126,7 @@ _hurd_exec (task_t task, file_t file,
      critical section flag avoids anything we call trying to acquire the
      sigstate lock.  */
 
-  __spin_unlock (&ss->lock);
+  _hurd_sigstate_unlock (ss);
 
   /* Pack up the descriptor table to give the new program.  */
   __mutex_lock (&_hurd_dtable_lock);

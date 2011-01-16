@@ -1,5 +1,5 @@
 /* Set thread_state for sighandler, and sigcontext to recover.  i386 version.
-   Copyright (C) 1994,1995,1996,1997,1998,1999,2005,2008
+   Copyright (C) 1994,1995,1996,1997,1998,1999,2005,2008,2011
 	Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
@@ -77,7 +77,11 @@ _hurd_setup_sighandler (struct hurd_sigstate *ss, __sighandler_t handler,
      interrupted RPC frame.  */
   state->basic.esp = state->basic.uesp;
 
-  if ((ss->actions[signo].sa_flags & SA_ONSTACK) &&
+  /* XXX what if handler != action->handler (for instance, if a signal
+   * preemptor took over) ? */
+  action = & _hurd_sigstate_actions (ss) [signo];
+
+  if ((action->sa_flags & SA_ONSTACK) &&
       !(ss->sigaltstack.ss_flags & (SS_DISABLE|SS_ONSTACK)))
     {
       sigsp = ss->sigaltstack.ss_sp + ss->sigaltstack.ss_size;
