@@ -459,6 +459,7 @@ __fork (void)
 	 function, accounted for by mach_port_names (and which will thus be
 	 accounted for in the child below).  This extra right gets consumed
 	 in the child by the store into _hurd_sigthread in the child fork.  */
+      /* XXX consumed? (_hurd_sigthread is no more) */
       if (thread_refs > 1 &&
 	  (err = __mach_port_mod_refs (newtask, ss->thread,
 				       MACH_PORT_RIGHT_SEND,
@@ -621,10 +622,6 @@ __fork (void)
       for (i = 0; i < _hurd_nports; ++i)
 	__spin_unlock (&_hurd_ports[i].lock);
 
-      /* We are one of the (exactly) two threads in this new task, we
-	 will take the task-global signals.  */
-      _hurd_sigthread = ss->thread;
-
       /* Claim our sigstate structure and unchain the rest: the
 	 threads existed in the parent task but don't exist in this
 	 task (the child process).  Delay freeing them until later
@@ -644,6 +641,10 @@ __fork (void)
       ss->next = NULL;
       _hurd_sigstates = ss;
       __mutex_unlock (&_hurd_siglock);
+
+      /* We are one of the (exactly) two threads in this new task, we
+	 will take the task-global signals.  */
+      _hurd_sigstate_set_global_rcv (ss);
 
       /* Fetch our new process IDs from the proc server.  No need to
 	 refetch our pgrp; it is always inherited from the parent (so
@@ -665,17 +666,15 @@ __fork (void)
       if (!err)
 	err = __thread_resume (_hurd_msgport_thread);
 
-      /* Reclaim the signal thread's sigstate structure and free the
-	 other old sigstate structures.  */
+      /* Reclaim the signal thread's and global sigstate structures and
+         free the other old sigstate structures.  */
       while (oldstates != NULL)
 	{
 	  struct hurd_sigstate *next = oldstates->next;
 
-	  if (oldstates->thread == _hurd_msgport_thread)
+	  if (oldstates->thread == _hurd_msgport_thread
+	      || oldstates->thread == MACH_PORT_NULL)
 	    {
-	      /* If we have a second signal state structure then we
-		 must have been through here before--not good.  */
-	      assert (_hurd_sigstates->next == 0);
 	      _hurd_sigstates->next = oldstates;
 	      oldstates->next = 0;
 	    }

@@ -156,6 +156,13 @@ libc {
     # functions used in macros & inline functions
     __errno_location;
   }
+  GLIBC_2.13 {
+    # functions used by libpthread
+    _hurd_sigstate_set_global_rcv;
+    _hurd_sigstate_lock;
+    _hurd_sigstate_pending;
+    _hurd_sigstate_unlock;
+  }
 
 %if !SHLIB_COMPAT (libc, GLIBC_2_0, GLIBC_2_2)
   HURD_CTHREADS_0.3 {
