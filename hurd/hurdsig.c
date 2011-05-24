@@ -970,42 +970,42 @@ pending_signals (struct hurd_sigstate *ss)
 static int
 post_pending (struct hurd_sigstate *ss, sigset_t pending, void (*reply) (void))
 {
-    int signo;
-    struct hurd_signal_detail detail;
+  int signo;
+  struct hurd_signal_detail detail;
 
-	for (signo = 1; signo < NSIG; ++signo)
-	  if (__sigismember (&pending, signo))
-	    {
-	      __sigdelset (&ss->pending, signo);
-	      detail = ss->pending_data[signo];
-	      __spin_unlock (&ss->lock);
-
-	      /* Will reacquire the lock, except if the signal is traced.  */
-	      if (! post_signal (ss, signo, &detail, 0, reply))
-		return 0;
-	    }
-
-	/* No more signals pending; SS->lock is still locked.
-	   Wake up any sigsuspend call that is blocking SS->thread.  */
-	if (ss->suspended != MACH_PORT_NULL)
-	  {
-	    /* There is a sigsuspend waiting.  Tell it to wake up.  */
-	    error_t err;
-	    mach_msg_header_t msg;
-	    msg.msgh_bits = MACH_MSGH_BITS (MACH_MSG_TYPE_MAKE_SEND, 0);
-	    msg.msgh_remote_port = ss->suspended;
-	    msg.msgh_local_port = MACH_PORT_NULL;
-	    /* These values do not matter.  */
-	    msg.msgh_id = 8675309; /* Jenny, Jenny.  */
-	    ss->suspended = MACH_PORT_NULL;
-	    err = __mach_msg (&msg, MACH_SEND_MSG, sizeof msg, 0,
-			      MACH_PORT_NULL, MACH_MSG_TIMEOUT_NONE,
-			      MACH_PORT_NULL);
-	    assert_perror (err);
-	  }
+  for (signo = 1; signo < NSIG; ++signo)
+    if (__sigismember (&pending, signo))
+      {
+	__sigdelset (&ss->pending, signo);
+	detail = ss->pending_data[signo];
 	__spin_unlock (&ss->lock);
 
-    return 1;
+	/* Will reacquire the lock, except if the signal is traced.  */
+	if (! post_signal (ss, signo, &detail, 0, reply))
+	  return 0;
+      }
+
+  /* No more signals pending; SS->lock is still locked.
+     Wake up any sigsuspend call that is blocking SS->thread.  */
+  if (ss->suspended != MACH_PORT_NULL)
+    {
+      /* There is a sigsuspend waiting.  Tell it to wake up.  */
+      error_t err;
+      mach_msg_header_t msg;
+      msg.msgh_bits = MACH_MSGH_BITS (MACH_MSG_TYPE_MAKE_SEND, 0);
+      msg.msgh_remote_port = ss->suspended;
+      msg.msgh_local_port = MACH_PORT_NULL;
+      /* These values do not matter.  */
+      msg.msgh_id = 8675309; /* Jenny, Jenny.  */
+      ss->suspended = MACH_PORT_NULL;
+      err = __mach_msg (&msg, MACH_SEND_MSG, sizeof msg, 0,
+			MACH_PORT_NULL, MACH_MSG_TIMEOUT_NONE,
+			MACH_PORT_NULL);
+      assert_perror (err);
+    }
+  __spin_unlock (&ss->lock);
+
+  return 1;
 }
 
 /* Post all the pending signals of all threads and return 1.  If a traced
