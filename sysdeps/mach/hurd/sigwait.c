@@ -50,9 +50,6 @@ __sigwait (const sigset_t *set, int *sig)
       /* Make sure this is all kosher */
       assert (__sigismember (&mask, signo));
 
-      /* Make sure this signal is unblocked */
-      __sigdelset (&ss->blocked, signo);
-
       return pe->handler;
     }
 
@@ -91,6 +88,8 @@ __sigwait (const sigset_t *set, int *sig)
 
   /* Wait for one of them to show up.  */
 
+  sigset_t blocked = 0;
+
   if (!setjmp (buf))
     {
       /* Make the preemptor */
@@ -103,6 +102,10 @@ __sigwait (const sigset_t *set, int *sig)
       /* Install this preemptor */
       preemptor.next = ss->preemptors;
       ss->preemptors = &preemptor;
+
+      /* Unblock the expected signals */
+      blocked = ss->blocked;
+      ss->blocked &= ~mask;
 
       _hurd_sigstate_unlock (ss);
 
@@ -120,6 +123,9 @@ __sigwait (const sigset_t *set, int *sig)
       /* Delete our preemptor. */
       assert (ss->preemptors == &preemptor);
       ss->preemptors = preemptor.next;
+
+      /* Restore the blocking mask. */
+      ss->blocked = blocked;
     }
 
 
