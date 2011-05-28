@@ -126,6 +126,28 @@ _hurd_thread_sigstate (thread_t thread)
   return ss;
 }
 
+/* Destroy a sigstate structure.  Called by libpthread just before the
+ * corresponding thread is terminated (the kernel thread port must remain valid
+ * until this function is called.) */
+void
+_hurd_sigstate_delete (thread_t thread)
+{
+  struct hurd_sigstate **ssp, *ss;
+
+  __mutex_lock (&_hurd_siglock);
+  for (ssp = &_hurd_sigstates; *ssp; ssp = &(*ssp)->next)
+    if ((*ssp)->thread == thread)
+      break;
+
+  ss = *ssp;
+  if (ss)
+    *ssp = ss->next;
+
+  __mutex_unlock (&_hurd_siglock);
+  if (ss)
+    free (ss);
+}
+
 /* Make SS a global receiver, with pthread signal semantics.  */
 void
 _hurd_sigstate_set_global_rcv (struct hurd_sigstate *ss)
