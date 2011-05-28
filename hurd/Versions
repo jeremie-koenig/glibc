@@ -162,6 +162,7 @@ libc {
     _hurd_sigstate_lock;
     _hurd_sigstate_pending;
     _hurd_sigstate_unlock;
+    _hurd_sigstate_delete;
   }
 
 %if !SHLIB_COMPAT (libc, GLIBC_2_0, GLIBC_2_2)

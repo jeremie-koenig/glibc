@@ -150,6 +150,9 @@ extern struct sigaction *_hurd_sigstate_actions (struct hurd_sigstate *ss);
 extern sigset_t _hurd_sigstate_pending (const struct hurd_sigstate *ss);
 extern void _hurd_sigstate_unlock (struct hurd_sigstate *ss);
 
+/* Used by libpthread to remove stale sigstate structures.  */
+void _hurd_sigstate_delete (thread_t thread);
+
 #ifndef _HURD_SIGNAL_H_EXTERN_INLINE
 #define _HURD_SIGNAL_H_EXTERN_INLINE __extern_inline
 #endif
