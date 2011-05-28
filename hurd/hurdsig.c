@@ -673,6 +673,11 @@ post_signal (struct hurd_sigstate *ss,
 
   _hurd_sigstate_lock (ss);
 
+  /* We want the preemptors to be able to update the blocking mask
+     without affecting the delivery of this signal, so we save the
+     current value to test against later.  */
+  sigset_t blocked = ss->blocked;
+
   /* Check for a preempted signal.  Preempted signals can arrive during
      critical sections.  */
   {
@@ -828,7 +833,7 @@ post_signal (struct hurd_sigstate *ss,
 
   /* Handle receipt of a blocked signal, or any signal while stopped.  */
   if (act != ignore &&		/* Signals ignored now are forgotten now.  */
-      __sigismember (&ss->blocked, signo) ||
+      __sigismember (&blocked, signo) ||
       (signo != SIGKILL && _hurd_stopped))
     {
       mark_pending ();
