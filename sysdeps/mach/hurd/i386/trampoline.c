@@ -242,6 +242,15 @@ _hurd_setup_sighandler (struct hurd_sigstate *ss, __sighandler_t handler,
 	}
       else
 	{
+	  if (detail->exc)
+	    {
+	      int nsigno;
+	      _hurd_exception2signal_legacy (detail, &nsigno);
+	      assert (nsigno == signo);
+	    }
+	  else
+	    detail->code = 0;
+
 	  stackframe->legacy.sigcode = detail->code;
 	  stackframe->legacy.scp = &stackframe->ctx;
 	}
