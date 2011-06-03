@@ -77,7 +77,11 @@ _hurd_setup_sighandler (struct hurd_sigstate *ss, __sighandler_t handler,
      interrupted RPC frame.  */
   state->basic.esp = state->basic.uesp;
 
-  if ((ss->actions[signo].sa_flags & SA_ONSTACK) &&
+  /* XXX what if handler != action->handler (for instance, if a signal
+   * preemptor took over) ? */
+  action = & _hurd_sigstate_actions (ss) [signo];
+
+  if ((action->sa_flags & SA_ONSTACK) &&
       !(ss->sigaltstack.ss_flags & (SS_DISABLE|SS_ONSTACK)))
     {
       sigsp = ss->sigaltstack.ss_sp + ss->sigaltstack.ss_size;
