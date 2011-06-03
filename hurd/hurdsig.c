@@ -577,9 +577,11 @@ weak_alias (_hurdsig_preemptors, _hurdsig_preempters)
 		  sigmask (SIGSTOP) | sigmask (SIGTSTP))
 
 /* Actual delivery of a single signal.  Called with SS unlocked.  When
-   the signal is delivered, return 1 with SS locked.  If the signal is
-   being traced, return 0 with SS unlocked.   */
-static int
+   the signal is delivered, return SS, locked (or, if SS was originally
+   _hurd_global_sigstate, the sigstate of the actual thread the signal
+   was delivered to).  If the signal is being traced, return NULL with
+   SS unlocked.   */
+static struct hurd_sigstate *
 post_signal (struct hurd_sigstate *ss,
 	     int signo, struct hurd_signal_detail *detail,
 	     int untraced, void (*reply) (void))
@@ -666,12 +668,37 @@ post_signal (struct hurd_sigstate *ss,
 
       /* This call is just to check for pending signals.  */
       _hurd_sigstate_lock (ss);
-      return 1;
+      return ss;
     }
 
   thread_state.set = 0;		/* We know nothing.  */
 
   _hurd_sigstate_lock (ss);
+
+  /* If this is a global signal, try to find a thread ready to accept
+     it right away.  This is especially important for untraced signals,
+     since going through the global pending mask would de-untrace them.  */
+  if (ss->thread == MACH_PORT_NULL)
+  {
+    struct hurd_sigstate *rss;
+
+    __mutex_lock (&_hurd_siglock);
+    for (rss = _hurd_sigstates; rss != NULL; rss = rss->next)
+      {
+	if (! sigstate_is_global_rcv (rss))
+	  continue;
+
+	/* The global sigstate is already locked.  */
+	__spin_lock (&rss->lock);
+	if (! __sigismember (&rss->blocked, signo))
+	  {
+	    ss = rss;
+	    break;
+	  }
+	__spin_unlock (&rss->lock);
+      }
+    __mutex_unlock (&_hurd_siglock);
+  }
 
   /* We want the preemptors to be able to update the blocking mask
      without affecting the delivery of this signal, so we save the
@@ -736,7 +763,7 @@ post_signal (struct hurd_sigstate *ss,
 	    suspend ();
 	  _hurd_sigstate_unlock (ss);
 	  reply ();
-	  return 0;
+	  return NULL;
 	}
 
       handler = _hurd_sigstate_actions (ss) [signo].sa_handler;
@@ -1086,7 +1113,7 @@ post_signal (struct hurd_sigstate *ss,
       }
     }
 
-  return 1;
+  return ss;
 }
 
 /* Return the set of pending signals in SS which should be delivered. */
@@ -1112,6 +1139,10 @@ post_pending (struct hurd_sigstate *ss, sigset_t pending, void (*reply) (void))
 {
   int signo;
   struct hurd_signal_detail detail;
+
+  /* Make sure SS corresponds to an actual thread, since we assume it won't
+     change in post_signal. */
+  assert (ss->thread != MACH_PORT_NULL);
 
   for (signo = 1; signo < NSIG; ++signo)
     if (__sigismember (&pending, signo))
@@ -1183,7 +1214,8 @@ _hurd_internal_post_signal (struct hurd_sigstate *ss,
 	assert_perror (err);
     }
 
-  if (! post_signal (ss, signo, detail, untraced, reply))
+  ss = post_signal (ss, signo, detail, untraced, reply);
+  if (! ss)
     return;
 
   /* The signal was neither fatal nor traced.  We still hold SS->lock.  */
