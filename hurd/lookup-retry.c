@@ -258,12 +258,28 @@ __hurd_file_name_lookup_retry (error_t (*use_init_port)
 		  if (p < retryname)
 		    abort ();	/* XXX write this right if this ever happens */
 		  if (p > retryname)
-		    strcpy (retryname, p);
+		    strcpy (retryname, p);   /* XXX should use memmove instead */
 		  startdir = *result;
+		  /* XXX file_name not set */
 		}
 	      else
 		goto bad_magic;
 	      break;
+
+	    case 's':
+	      if (retryname[1] == 'e' && retryname[2] == 'l' &&
+		  retryname[3] == 'f')
+	        {
+		  char retry_pid[sizeof (pid_t) * 3 + 1];
+		  char *p = &retry_pid[sizeof retry_pid - 1];
+
+		  *p = '\0';
+		  p = _itoa (_hurd_pid, p, 10, 0);
+		  strcpy (retryname, p);
+
+		  startdir = *result;
+		  file_name = retryname;
+		}
 
 	    case 't':
 	      if (retryname[1] == 't' && retryname[2] == 'y')
