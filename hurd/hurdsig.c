@@ -670,6 +670,32 @@ post_signal (struct hurd_sigstate *ss,
 
   _hurd_sigstate_lock (ss);
 
+  /* If this is a global untraced signal, delivering it through the global
+     pending mask would de-untrace it, so we try to find a thread ready to
+     accept it right away.  NB: This could be attempted for all global
+     signals.  */
+  if (untraced && ss->thread == MACH_PORT_NULL)
+  {
+    struct hurd_sigstate *rss;
+
+    __mutex_lock (&_hurd_siglock);
+    for (rss = _hurd_sigstates; rss != NULL; rss = rss->next)
+      {
+	if (! sigstate_is_global_rcv (rss))
+	  continue;
+
+	/* The global sigstate is already locked.  */
+	__spin_lock (&rss->lock);
+	if (! __sigismember (&ss->blocked, signo))
+	  {
+	    ss = rss;
+	    break;
+	  }
+	__spin_unlock (&rss->lock);
+      }
+    __mutex_unlock (&_hurd_siglock);
+  }
+
   /* Check for a preempted signal.  Preempted signals can arrive during
      critical sections.  */
   /* XXX how does this mix with _hurd_global_sigstate?  Should its PREEMPTORS
