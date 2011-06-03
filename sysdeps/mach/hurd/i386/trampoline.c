@@ -21,12 +21,65 @@
 #include <hurd/signal.h>
 #include <hurd/userlink.h>
 #include <thread_state.h>
+#include <mach/exception.h>
 #include <mach/machine/eflags.h>
 #include <assert.h>
 #include <errno.h>
 #include "hurdfault.h"
 #include <intr-msg.h>
+#include <sys/ucontext.h>
 
+
+/* Fill in a siginfo_t structure for SA_SIGINFO-enabled handlers.  */
+static void fill_siginfo (siginfo_t *si, int signo,
+			  const struct hurd_signal_detail *detail,
+			  const struct machine_thread_all_state *state)
+{
+  si->si_signo = signo;
+  si->si_errno = detail->error;
+  si->si_code = detail->code;
+
+  /* XXX We would need a protocol change for sig_post to include
+   * this information.  */
+  si->si_pid = -1;
+  si->si_uid = -1;
+
+  /* Address of the faulting instruction or memory access.  */
+  if (detail->exc == EXC_BAD_ACCESS)
+    si->si_addr = (void *) detail->exc_subcode;
+  else
+    si->si_addr = (void *) state->basic.eip;
+
+  /* XXX On SIGCHLD, this should be the exit status of the child
+   * process.  We would need a protocol change for the proc server
+   * to send this information along with the signal.  */
+  si->si_status = 0;
+
+  si->si_band = 0;              /* SIGPOLL is not supported yet.  */
+  si->si_value.sival_int = 0;   /* sigqueue() is not supported yet.  */
+}
+
+/* Fill in a ucontext_t structure SA_SIGINFO-enabled handlers.  */
+static void fill_ucontext (ucontext_t *uc, const struct sigcontext *sc)
+{
+  uc->uc_flags = 0;
+  uc->uc_link = NULL;
+  uc->uc_sigmask = sc->sc_mask;
+  uc->uc_stack.ss_sp = (__ptr_t) sc->sc_esp;
+  uc->uc_stack.ss_size = 0;
+  uc->uc_stack.ss_flags = 0;
+
+  /* Registers.  */
+  memcpy (&uc->uc_mcontext.gregs[REG_GS], &sc->sc_gs,
+	  (REG_TRAPNO - REG_GS) * sizeof (int));
+  uc->uc_mcontext.gregs[REG_TRAPNO] = 0;
+  uc->uc_mcontext.gregs[REG_ERR] = 0;
+  memcpy (&uc->uc_mcontext.gregs[REG_EIP], &sc->sc_eip,
+	  (NGREG - REG_EIP) * sizeof (int));
+
+  /* XXX FPU state.  */
+  memset (&uc->uc_mcontext.fpregs, 0, sizeof (fpregset_t));
+}
 
 struct sigcontext *
 _hurd_setup_sighandler (struct hurd_sigstate *ss, __sighandler_t handler,
@@ -40,18 +93,37 @@ _hurd_setup_sighandler (struct hurd_sigstate *ss, __sighandler_t handler,
   extern const void _hurd_intr_rpc_msg_in_trap;
   extern const void _hurd_intr_rpc_msg_cx_sp;
   extern const void _hurd_intr_rpc_msg_sp_restored;
+  struct sigaction *action;
   void *volatile sigsp;
   struct sigcontext *scp;
   struct
     {
       int signo;
-      long int sigcode;
-      struct sigcontext *scp;	/* Points to ctx, below.  */
+      union
+	{
+	  /* Extra arguments for traditional signal handlers */
+	  struct
+	    {
+	      long int sigcode;
+	      struct sigcontext *scp;       /* Points to ctx, below.  */
+	    } legacy;
+
+	  /* Extra arguments for SA_SIGINFO handlers */
+	  struct
+	    {
+	      siginfo_t *siginfop;          /* Points to siginfo, below.  */
+	      ucontext_t *uctxp;            /* Points to uctx, below.  */
+	    } posix;
+	};
       void *sigreturn_addr;
       void *sigreturn_returns_here;
       struct sigcontext *return_scp; /* Same; arg to sigreturn.  */
+
+      /* NB: sigreturn assumes link is next to ctx.  */
       struct sigcontext ctx;
       struct hurd_userlink link;
+      ucontext_t ucontext;
+      siginfo_t siginfo;
     } *stackframe;
 
   if (ss->context)
@@ -143,15 +215,9 @@ _hurd_setup_sighandler (struct hurd_sigstate *ss, __sighandler_t handler,
 	  = &stackframe->link.thread.next;
       ss->active_resources = &stackframe->link;
 
-      /* Set up the arguments for the signal handler.  */
-      stackframe->signo = signo;
-      stackframe->sigcode = detail->code;
-      stackframe->scp = stackframe->return_scp = scp = &stackframe->ctx;
-      stackframe->sigreturn_addr = &__sigreturn;
-      stackframe->sigreturn_returns_here = firewall; /* Crash on return.  */
-
       /* Set up the sigcontext from the current state of the thread.  */
 
+      scp = &stackframe->ctx;
       scp->sc_onstack = ss->sigaltstack.ss_flags & SS_ONSTACK ? 1 : 0;
 
       /* struct sigcontext is laid out so that starting at sc_gs mimics a
@@ -164,6 +230,26 @@ _hurd_setup_sighandler (struct hurd_sigstate *ss, __sighandler_t handler,
       ok = machine_get_state (ss->thread, state, i386_FLOAT_STATE,
 			      &state->fpu, &scp->sc_i386_float_state,
 			      sizeof (state->fpu));
+
+      /* Set up the arguments for the signal handler.  */
+      stackframe->signo = signo;
+      if (action->sa_flags & SA_SIGINFO)
+	{
+	  stackframe->posix.siginfop = &stackframe->siginfo;
+	  stackframe->posix.uctxp = &stackframe->ucontext;
+	  fill_siginfo (&stackframe->siginfo, signo, detail, state);
+	  fill_ucontext (&stackframe->ucontext, scp);
+	}
+      else
+	{
+	  stackframe->legacy.sigcode = detail->code;
+	  stackframe->legacy.scp = &stackframe->ctx;
+	}
+
+      /* Set up the bottom of the stack.  */
+      stackframe->sigreturn_addr = &__sigreturn;
+      stackframe->sigreturn_returns_here = firewall; /* Crash on return.  */
+      stackframe->return_scp = &stackframe->ctx;
 
       _hurdsig_end_catch_fault ();
 
