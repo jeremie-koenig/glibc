@@ -309,7 +309,7 @@ this argument, you must define the handler to accept two arguments,
 which means you must cast it to a one-argument function type in order to
 establish the handler.  The GNU library does provide this extra
 argument, but the value is meaningful only on operating systems that
-provide the information (BSD systems and GNU systems).
+provide the information (BSD systems).
 
 @table @code
 @comment signal.h

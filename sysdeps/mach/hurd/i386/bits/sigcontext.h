@@ -95,26 +95,4 @@ struct sigcontext
 #define sc_pc	sc_eip		/* Process counter.  */
 #define sc_ps	sc_efl
 
-
-/* Codes for SIGFPE.  */
-#define FPE_INTOVF_TRAP		0x1 /* integer overflow */
-#define FPE_INTDIV_FAULT	0x2 /* integer divide by zero */
-#define FPE_FLTOVF_FAULT	0x3 /* floating overflow */
-#define FPE_FLTDIV_FAULT	0x4 /* floating divide by zero */
-#define FPE_FLTUND_FAULT	0x5 /* floating underflow */
-#define FPE_SUBRNG_FAULT	0x7 /* BOUNDS instruction failed */
-#define FPE_FLTDNR_FAULT	0x8 /* denormalized operand */
-#define FPE_FLTINX_FAULT	0x9 /* floating loss of precision */
-#define FPE_EMERR_FAULT		0xa /* mysterious emulation error 33 */
-#define FPE_EMBND_FAULT		0xb /* emulation BOUNDS instruction failed */
-
-/* Codes for SIGILL.  */
-#define ILL_INVOPR_FAULT	0x1 /* invalid operation */
-#define ILL_STACK_FAULT		0x2 /* fault on microkernel stack access */
-#define ILL_FPEOPR_FAULT	0x3 /* invalid floating operation */
-
-/* Codes for SIGTRAP.  */
-#define DBG_SINGLE_TRAP		0x1 /* single step */
-#define DBG_BRKPNT_FAULT	0x2 /* breakpoint instruction */
-
 #endif /* sc_pc */
