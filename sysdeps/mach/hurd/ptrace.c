@@ -144,7 +144,7 @@ ptrace (enum __ptrace_request request, ... )
 	      /* Tell the process to take the signal (or just resume if 0).  */
 	      err = HURD_MSGPORT_RPC
 		(__USEPORT (PROC, __proc_getmsgport (port, pid, &msgport)),
-		 0, 0, __msg_sig_post_untraced (msgport, data, 0, task));
+		 0, 0, __msg_sig_post_untraced (msgport, data, SI_USER, task));
 	  }
 	__mach_port_deallocate (__mach_task_self (), task);
 	return err ? __hurd_fail (err) : 0;
