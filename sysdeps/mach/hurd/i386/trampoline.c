@@ -21,11 +21,13 @@
 #include <hurd/signal.h>
 #include <hurd/userlink.h>
 #include <thread_state.h>
+#include <mach/exception.h>
 #include <mach/machine/eflags.h>
 #include <assert.h>
 #include <errno.h>
 #include "hurdfault.h"
 #include <intr-msg.h>
+#include <sys/ucontext.h>
 
 
 struct sigcontext *
@@ -40,18 +42,37 @@ _hurd_setup_sighandler (struct hurd_sigstate *ss, __sighandler_t handler,
   extern const void _hurd_intr_rpc_msg_in_trap;
   extern const void _hurd_intr_rpc_msg_cx_sp;
   extern const void _hurd_intr_rpc_msg_sp_restored;
+  struct sigaction *action;
   void *volatile sigsp;
   struct sigcontext *scp;
   struct
     {
       int signo;
-      long int sigcode;
-      struct sigcontext *scp;	/* Points to ctx, below.  */
+      union
+	{
+	  /* Extra arguments for traditional signal handlers */
+	  struct
+	    {
+	      long int sigcode;
+	      struct sigcontext *scp;       /* Points to ctx, below.  */
+	    } legacy;
+
+	  /* Extra arguments for SA_SIGINFO handlers */
+	  struct
+	    {
+	      siginfo_t *siginfop;          /* Points to siginfo, below.  */
+	      ucontext_t *uctxp;            /* Points to uctx, below.  */
+	    } posix;
+	};
       void *sigreturn_addr;
       void *sigreturn_returns_here;
-      struct sigcontext *return_scp; /* Same; arg to sigreturn.  */
+      struct sigcontext *return_scp; /* Same as scp above; arg to sigreturn.  */
+
+      /* NB: sigreturn assumes link is next to ctx.  */
       struct sigcontext ctx;
       struct hurd_userlink link;
+      ucontext_t uctx;
+      siginfo_t siginfo;
     } *stackframe;
 
   if (ss->context)
@@ -145,8 +166,44 @@ _hurd_setup_sighandler (struct hurd_sigstate *ss, __sighandler_t handler,
 
       /* Set up the arguments for the signal handler.  */
       stackframe->signo = signo;
-      stackframe->sigcode = detail->code;
-      stackframe->scp = stackframe->return_scp = scp = &stackframe->ctx;
+      stackframe->return_scp = scp = &stackframe->ctx;
+      if (action->sa_flags & SA_SIGINFO)
+        {
+	  stackframe->siginfo.si_signo = signo;
+	  stackframe->siginfo.si_errno = detail->error;
+	  stackframe->siginfo.si_code = detail->code;
+
+	  /* XXX We would need a protocol change for sig_post to include
+	   * this information.  */
+	  stackframe->siginfo.si_pid = -1;
+	  stackframe->siginfo.si_uid = -1;
+
+	  /* Address of the faulting instruction or memory access.  */
+	  if (detail->exc == EXC_BAD_ACCESS)
+	    stackframe->siginfo.si_addr = (void *) detail->exc_subcode;
+	  else
+	    stackframe->siginfo.si_addr = (void *) state->basic.eip;
+
+	  /* XXX On SIGCHLD, this should be the exit status of the child
+	   * process.  We would need a protocol change for the proc server
+	   * to send this information along with the signal.  */
+	  stackframe->siginfo.si_status = 0;
+
+	  /* SIGPOLL is not supported yet.  */
+	  stackframe->siginfo.si_band = 0;
+
+	  /* sigqueue() is not supported yet.  */
+	  stackframe->siginfo.si_value.sival_int = 0;
+	  stackframe->posix.siginfop = &stackframe->siginfo;
+
+	  /* XXX The ucontext functions are not implemented yet */
+	  stackframe->posix.uctxp = NULL /* &stackframe->uctx */;
+	}
+      else
+        {
+	  stackframe->legacy.sigcode = detail->code;
+	  stackframe->legacy.scp = scp;
+	}
       stackframe->sigreturn_addr = &__sigreturn;
       stackframe->sigreturn_returns_here = firewall; /* Crash on return.  */
 

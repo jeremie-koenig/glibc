@@ -59,6 +59,7 @@ struct sigaction
 # define SA_NODEFER	0x0010	/* Don't automatically block the signal when
 				    its handler is being executed.  */
 # define SA_RESETHAND	0x0004	/* Reset to SIG_DFL on entry to handler.  */
+# define SA_SIGINFO	0x0020	/* Signal handler with SA_SIGINFO args */
 #endif
 #define	SA_NOCLDSTOP	0x0008	/* Don't send SIGCHLD when children stop.  */
 
