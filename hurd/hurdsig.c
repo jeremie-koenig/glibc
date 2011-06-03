@@ -1214,6 +1214,7 @@ _hurd_internal_post_signal (struct hurd_sigstate *ss,
       reply ();
 
       /* Post any pending signals for this thread.  */
+      /* XXX really? (esp. wrt REPLY) */
       if (! post_pending (ss, pending_signals (ss), reply))
 	return;
     }
