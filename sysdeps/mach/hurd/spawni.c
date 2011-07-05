@@ -241,7 +241,7 @@ __spawni (pid_t *pid, const char *file,
 
   _hurd_sigstate_lock (ss);
   ints[INIT_SIGMASK] = ss->blocked;
-  ints[INIT_SIGPENDING] = _hurd_sigstate_pending (ss); /* XXX really? */
+  ints[INIT_SIGPENDING] = 0;
   ints[INIT_SIGIGN] = 0;
   /* Unless we were asked to reset all handlers to SIG_DFL,
      pass down the set of signals that were set to SIG_IGN.  */
