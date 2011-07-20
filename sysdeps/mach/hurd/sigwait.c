@@ -28,7 +28,7 @@ int
 __sigwait (const sigset_t *set, int *sig)
 {
   struct hurd_sigstate *ss;
-  sigset_t mask, ready, blocked;
+  sigset_t mask, blocked;
   int signo = 0;
   struct hurd_signal_preemptor preemptor;
   jmp_buf buf;
@@ -74,22 +74,7 @@ __sigwait (const sigset_t *set, int *sig)
   ss = _hurd_self_sigstate ();
   _hurd_sigstate_lock (ss);
 
-  /* See if one of these signals is currently pending.  */
-  sigset_t pending = _hurd_sigstate_pending (ss);
-  __sigandset (&ready, &pending, &mask);
-  if (! __sigisemptyset (&ready))
-    {
-      for (signo = 1; signo < NSIG; signo++)
-	if (__sigismember (&ready, signo))
-	  {
-	    __sigdelset (&ready, signo);
-	    goto all_done;
-	  }
-      /* Huh?  Where'd it go? */
-      abort ();
-    }
-
-  /* Wait for one of them to show up.  */
+  /* Wait for one of the signals in MASK to show up.  */
 
   if (!setjmp (buf))
     {
@@ -108,7 +93,16 @@ __sigwait (const sigset_t *set, int *sig)
       blocked = ss->blocked;
       ss->blocked &= ~mask;
 
+      /* See if one of them is currently pending.  */
+      sigset_t ready = _hurd_sigstate_pending (ss);
+      __sigandset (&ready, &ready, &mask);
+
       _hurd_sigstate_unlock (ss);
+
+      if (! __sigisemptyset (&ready))
+	/* Send a message to the signal thread so it
+	   will wake up and check for pending signals.  */
+	__msg_sig_post (_hurd_msgport, 0, 0, __mach_task_self ());
 
       /* Wait. */
       __mach_msg (&msg, MACH_RCV_MSG, 0, sizeof (msg), wait,
@@ -126,8 +120,6 @@ __sigwait (const sigset_t *set, int *sig)
       ss->preemptors = preemptor.next;
     }
 
-
-all_done:
   _hurd_sigstate_unlock (ss);
 
   __mach_port_destroy (__mach_task_self (), wait);
