@@ -859,9 +859,7 @@ post_signal (struct hurd_sigstate *ss,
     }
 
   /* Handle receipt of a blocked signal, or any signal while stopped.  */
-  if (act != ignore &&		/* Signals ignored now are forgotten now.  */
-      __sigismember (&blocked, signo) ||
-      (signo != SIGKILL && _hurd_stopped))
+  if (__sigismember (&blocked, signo) || (signo != SIGKILL && _hurd_stopped))
     {
       mark_pending ();
       act = ignore;
